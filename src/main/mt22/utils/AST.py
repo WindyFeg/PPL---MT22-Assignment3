@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod, ABCMeta
-from typing import List, Tuple
+from typing import List, Tuple 
 
 
 class AST(ABC):
@@ -91,7 +91,7 @@ class BinExpr(Expr):
 
 class UnExpr(Expr):
     def __init__(self, op: str, val: Expr):
-        self.op = str
+        self.op = op
         self.val = val
 
     def __str__(self):

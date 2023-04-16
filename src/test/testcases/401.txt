@@ -1,0 +1,2 @@
+x: float = 7;
+        y: integer = x;

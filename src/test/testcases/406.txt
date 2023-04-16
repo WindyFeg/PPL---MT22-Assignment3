@@ -1,0 +1,2 @@
+b : auto = " h e l l o " ;
+a: float = b;

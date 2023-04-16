@@ -1,0 +1,3 @@
+x: auto = 3;
+y: float = x;
+z: boolean = y;
