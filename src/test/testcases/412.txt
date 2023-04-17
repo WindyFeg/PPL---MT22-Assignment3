@@ -1,0 +1,6 @@
+
+        a: integer = 7;
+        b: boolean = true;
+        c: boolean = false;
+        d: float = ((b || c) && c) && a;
+        

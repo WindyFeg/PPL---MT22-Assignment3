@@ -1,1 +1,3 @@
-x: integer = 3.9;
+c : auto = 10 < 100;
+        a: boolean = c;
+        b: float = a;

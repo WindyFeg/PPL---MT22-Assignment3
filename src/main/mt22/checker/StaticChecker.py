@@ -4,13 +4,32 @@ from StaticChecker import *
 from AST import *
 from functools import *
 from StaticError import *
+from dataclasses import dataclass
 
 class NoType:
     pass
+
+class Type(AST):
+    pass
+
+
+@dataclass
 class Symbol:
-    def __init__(self, name, mtype):
-        self.name = name
-        self.mtype = mtype
+    name: str
+    mtype: Type
+    paramTypes: list[Type] = None
+    returnType: Type = None
+    
+    def __repr__(self) -> str:
+        return (
+            "Symbol("
+            + str(self.name)
+            + ", "
+            + str(self.mtype)
+            # + str(self.params_to_str())
+            # + str(self.return_to_str())
+            + ")"
+        )
 
 class StaticChecker(Visitor):
     def __init__(self, ast): 
@@ -43,7 +62,64 @@ class StaticChecker(Visitor):
     def visitVoidType(self, ctx, o):
         return VoidType()
 
-    def visitBinExpr(self, ctx, o): pass
+    #% BinExpr: #op: str, left: Expr, right: Expr
+    def visitBinExpr(self, ctx: BinExpr, o): 
+        op = ctx.op
+        left = self.visit(ctx.left, o)
+        right = self.visit(ctx.right, o)
+        typeLeft = type(left)
+        typeRight = type(right)
+
+        print("-----------------------------")
+        print(ctx)
+        print(typeLeft)
+        print(typeRight)
+
+        #* Arithmetic operators
+        if op == '%':
+            if typeLeft == typeRight and typeLeft == IntegerType:
+                return IntegerType()
+            else:
+                raise TypeMismatchInExpression(ctx)
+
+        if op in ['+', '-', '*', '/']:
+            if typeLeft == typeRight and typeLeft in [IntegerType, FloatType]:
+                return left
+            elif typeLeft == IntegerType and typeRight == FloatType:
+                return FloatType()
+            elif typeLeft == FloatType and typeRight == IntegerType:
+                return FloatType()
+            
+            else:
+                raise TypeMismatchInExpression(ctx)
+        
+        #* Boolean operators
+        if op in ['&&', '||']:
+            if typeLeft == typeRight and typeLeft == BooleanType:
+                return BooleanType()
+            else:
+                raise TypeMismatchInExpression(ctx)
+
+        #* String operators
+        if op == '::':
+            if typeLeft == typeRight and typeLeft == StringType:
+                return StringType()
+            else:
+                raise TypeMismatchInExpression(ctx)
+            
+        #* Relational operators
+        if op in ['<', '>', '<=', '>=']:
+            if typeLeft in [IntegerType, FloatType] and typeRight in [IntegerType, FloatType]:
+                return BooleanType()
+            else:
+                raise TypeMismatchInExpression(ctx)
+        
+        if op in ['==', '!=']:
+            if typeLeft == typeRight and typeLeft in [IntegerType, BooleanType]:
+                return BooleanType()
+            else:
+                raise TypeMismatchInExpression(ctx)
+
     def visitUnExpr(self, ctx:UnExpr, o): pass
 
     def visitId(self, ctx, o): 
@@ -111,16 +187,37 @@ class StaticChecker(Visitor):
                 return Symbol(ctx.name, initType)
             else:
                 raise TypeMismatchInVarDecl(ctx)
+        
+        #* No init for AutoType
+        elif type(ctx.typ) == AutoType:
+            raise Invalid(Variable(),ctx)
         return Symbol(ctx.name,ctx.typ)
 
     def visitParamDecl(self, ctx, o): pass
-    def visitFuncDecl(self, ctx, o): pass
+
+    #% FuncDecl: # 
+    #% name: str, 
+    #% return_type: Type, 
+    #% params: List[ParamDecl], 
+    #% inherit: str or None, 
+    #% body: BlockStmt
+    def visitFuncDecl(self, ctx, o):
+        for symbol in o:
+            if symbol.name == ctx.name:
+                raise Redeclared(Function(),ctx.name)
+        
+        #* Check return type
+        return Symbol(ctx.name, ctx.return_type)
 
     #$ PROGRAM 
     #% program: #decls: List[Decl] 
     def visitProgram(self, ctx, o):
         #* o will have a list of Symbol(name, mtype)
         o = []
+        #! has two loop to loop through vardecl and funcdecl
         for decl in ctx.decls:
             o.append(self.visit(decl, o))
-        return ""
+        
+        #! check if there is a main function
+        raise NoEntryPoint()
+        

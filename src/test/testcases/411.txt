@@ -1,0 +1,6 @@
+
+        a: integer = 3;
+        c: integer = 10;
+        d: auto = 10 % 3;
+        f: boolean = d;
+        

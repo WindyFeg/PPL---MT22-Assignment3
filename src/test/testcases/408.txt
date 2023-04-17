@@ -1,0 +1,6 @@
+a: integer = 3;
+        b: integer = 4;
+        c: integer = a + b;
+        d: float = a - b;
+        f: boolean = a * b;
+        

@@ -1,0 +1,4 @@
+
+d : auto;
+e : auto = 1 + d;
+        

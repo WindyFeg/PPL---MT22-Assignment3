@@ -1,1 +1,1 @@
-Type mismatch in Variable Declaration: VarDecl(a, BooleanType, Id(c))
+Type mismatch in Variable Declaration: VarDecl(b, FloatType, Id(a))

@@ -1,0 +1,5 @@
+
+        a: integer = 3;
+        b: float = 4 + a;
+        c: integer = b + 10;
+        

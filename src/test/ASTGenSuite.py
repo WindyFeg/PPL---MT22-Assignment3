@@ -51,9 +51,9 @@ class ASTGenSuite(unittest.TestCase):
 
     def test_to_see_ast(self):
         """To see AST"""
-        input = """x: integer = 3.9;
-        y: float = x;
-        z: boolean = y;"""
+        input = """c : auto = 10 < 100;
+        a: boolean = c;
+        b: float = a;"""
         expect = ""
         self.assertTrue(TestAST.test(input, expect, 305))
 

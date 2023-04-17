@@ -1,0 +1,5 @@
+
+        a: integer = 3;
+        b: integer = 4 + a;
+        c: integer = a + true;
+        

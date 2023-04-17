@@ -1,3 +1,5 @@
 Program([
-	VarDecl(x, IntegerType, FloatLit(3.9))
+	VarDecl(c, AutoType, BinExpr(<, IntegerLit(10), IntegerLit(100)))
+	VarDecl(a, BooleanType, Id(c))
+	VarDecl(b, FloatType, Id(a))
 ])

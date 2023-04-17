@@ -1,0 +1,6 @@
+
+a : auto = 1;
+b : auto = 2.0;
+c : auto = a <= b;
+d : auto = a == b;
+        

@@ -102,3 +102,5 @@ class InvalidStatementInFunction(StaticError):
 class NoEntryPoint(StaticError):
     def __str__(self):
         return "No entry point"
+    
+

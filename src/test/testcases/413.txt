@@ -1,0 +1,5 @@
+
+        a: string = "halo";
+        b: string = a :: "balo";
+        c: boolean = a && b;
+        
