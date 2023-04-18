@@ -1,0 +1,6 @@
+
+        /*$?? b still dose not have any value*/ 
+        a: integer;
+        b: float;
+        a = b + 1;
+        

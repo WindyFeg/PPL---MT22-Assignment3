@@ -1,0 +1,8 @@
+
+        /*$?? b still dose not have any value*/ 
+        a: integer;
+        b: float;
+        c: boolean;
+        a = 2012;
+        b = a + 239.8;
+        

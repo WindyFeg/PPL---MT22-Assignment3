@@ -36,25 +36,7 @@ class Symbol:
             return False
         return self.name == other.name and self.mtype == other.mtype
     
-# @dataclass
-# class ArraySymbol(Type):
-#     name: str
-#     mtype: Type
-#     dimension: list[int]
 
-#     def __eq__(self, other) :
-#         if type(self) is not type(other):
-#             return False
-#         return self.dimension == other.dimension and self.typeArray == other.typeArray
-
-#     def __repr__(self) -> str:
-#         return ("ArraySymbol(" 
-#                 + str(self.name) 
-#                 + ',' 
-#                 + str(self.dimension) 
-#                 + ',' 
-#                 + str(self.mtype) 
-#                 + ')' )
 class Tool:
     def CheckRedeclare(self, name, o):
         for symbol in o:
@@ -229,15 +211,39 @@ class StaticChecker(Visitor):
     def visitFuncCall(self, ctx, o): pass
 
     #$ STATEMENT 
-    def visitAssignStmt(self, ctx, o): pass
+    #%AssignStmt: lhs: LHS, rhs: Expr
+    def visitAssignStmt(self, ctx, o): 
+        lhs = self.visit(ctx.lhs, o)
+        rhs = self.visit(ctx.rhs, o)
+
+        print(type(lhs), type(rhs))
+        #* Check if lsh is VoidType or ArrayType
+        if type(lhs) in [VoidType, ArrayType]:
+            raise TypeMismatchInStatement(ctx)
+
+        #* Check if lsh is same type as rhs
+        if type(lhs) != type(rhs):
+            #* Check if lsh is FloatType
+            if type(lhs) == FloatType and type(rhs) == IntegerType:
+                return
+            raise TypeMismatchInStatement(ctx)
+
     def visitBlockStmt(self, ctx, o): pass
     def visitIfStmt(self, ctx, o): pass
     def visitForStmt(self, ctx, o): pass
     def visitWhileStmt(self, ctx, o): pass
     def visitDoWhileStmt(self, ctx, o): pass
-    def visitBreakStmt(self, ctx, o): pass
-    def visitContinueStmt(self, ctx, o): pass
-    def visitReturnStmt(self, ctx, o): pass
+
+    def visitBreakStmt(self, ctx:BreakStmt, o): 
+        return BreakStmt()
+    
+    def visitContinueStmt(self, ctx:ContinueStmt, o): 
+        return ContinueStmt()
+
+    #% ReturnStmt: expr: Expr
+    def visitReturnStmt(self, ctx: ReturnStmt, o):
+        return self.visit(ctx.expr, o) 
+    
     def visitCallStmt(self, ctx, o): pass
 
     #$ DECLARE
@@ -279,20 +285,26 @@ class StaticChecker(Visitor):
         
         #* No initialize 
         #* AutoType
-        elif type(ctx.typ) == AutoType or type(ctx.typ.typ) == AutoType:
+        elif type(ctx.typ) == AutoType:
             raise Invalid(Variable(),ctx)
         
-        #* Array 
         # VarDecl(n, ArrayType([1, 2], IntegerType))
-        #* Check "array [int]"
-        if ctx.typ.dimensions and type(ctx.typ) == ArrayType:
-            return Symbol(ctx.name, ctx.typ)
-        elif ctx.typ.dimensions and type(ctx.typ) != ArrayType:
-            raise TypeMismatchInExpression(ctx)
+        #* ArrayType
+        elif type(ctx.typ) == ArrayType: 
+            if type(ctx.typ.typ) == AutoType:
+                raise Invalid(Variable(),ctx)
+            #* Array 
+            #* Check "array [int]"
+            if ctx.typ.dimensions:
+                return Symbol(ctx.name, ctx.typ)
         
         #* Arithmetic 
         return Symbol(ctx.name,ctx.typ)
 
+    #% name: str, 
+    #% typ: Type, 
+    #% out: bool = False, 
+    #% inherit: bool = False
     def visitParamDecl(self, ctx, o): pass
 
     #% FuncDecl: # 
@@ -301,9 +313,21 @@ class StaticChecker(Visitor):
     #% params: List[ParamDecl], 
     #% inherit: str or None, 
     #% body: BlockStmt
+    #* name: function <return-type> (<parameter-list>) [inherit <function-name>]?
     def visitFuncDecl(self, ctx, o):
         Tool.CheckRedeclare(self, ctx.name, o)
         
+        #* Check inherit 
+        if ctx.inherit:
+            #* yes -> get inherit param + param in current scope
+            Tool.CheckInherit(self, ctx.inherit, o)
+        else:
+            #* no -> get param in current scope 
+            
+        #* Check return type (AutoType)
+        #* save all into symbol table
+        
+
         #* Check return type
         return Symbol(ctx.name, ctx.return_type)
 
