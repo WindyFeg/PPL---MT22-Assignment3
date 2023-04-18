@@ -1,3 +1,2 @@
-c : auto = 10 < 100;
-        a: boolean = c;
-        b: float = a;
+a: array [1,2] of integer; 
+a[2,2]

@@ -1,0 +1,4 @@
+
+        a: array [1,2] of string = {"true", "1"};
+        a: array [1,2] of boolean = {true, 1};
+        

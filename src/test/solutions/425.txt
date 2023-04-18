@@ -1,0 +1,1 @@
+Type mismatch in expression: ArrayLit([ArrayCell(a, [IntegerLit(1)]), Id(d), ArrayCell(b, [IntegerLit(1)])])

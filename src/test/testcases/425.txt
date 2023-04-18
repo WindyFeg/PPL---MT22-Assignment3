@@ -1,0 +1,6 @@
+
+        a: array [1,2] of auto = {"true", "1"};
+        b: array [1,2,3,4] of auto = {1};
+        d: boolean = false;
+        c: array [1,2,3,4] of auto = {a[1], d, b[1]};
+        

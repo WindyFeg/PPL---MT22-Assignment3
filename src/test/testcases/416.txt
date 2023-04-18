@@ -1,0 +1,3 @@
+x, y, z: integer = 1,2,3;
+                   a: float = x + 1;
+                   b: integer = a + 1;
