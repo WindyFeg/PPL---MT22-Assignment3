@@ -58,6 +58,22 @@ class Tool:
     def CheckType(symbol, type):
         return type == symbol.mtype
 
+    #* Check dimension of array literal
+    def CheckArrayLitDimension(exprList):
+        return [len(exprList)] + Tool.CheckArrayLitDimension(exprList[0]) if type(exprList) == list else []
+    
+    def flatten(arr):
+        result = []
+        for item in arr:
+            if isinstance(item, list):
+                result.extend(Tool.flatten(item))
+            else:
+                result.append(item)
+        return result
+    
+    def int_to_str(arr):
+        return [str(i) for i in arr]
+
 class StaticChecker(Visitor):
     def __init__(self, ast): 
         self.ast = ast
@@ -197,16 +213,40 @@ class StaticChecker(Visitor):
             return symbol.mtype.typ
         raise TypeMismatchInExpression(ctx)
     
+    
+
     #% ArrayLit: explist: List[Expr]
     #* {1,2,3}
-    def visitArrayLit(self, ctx, o): 
-        arrayLitType = self.visit(ctx.explist[0], o)
-        for expr in ctx.explist:
-            typeExpr = self.visit(expr, o)
-            # print(typeExpr , arrayLitType, type(typeExpr) != type(arrayLitType))
-            if type(typeExpr) != type(arrayLitType):
-                raise TypeMismatchInExpression(ctx)
-        return arrayLitType
+    #* Check if all expr in array are the same type and return that type
+    def visitArrayLit(self, ctx:ArrayLit, o):
+        dimension = len(ctx.explist)
+        # print("dimension check " + str(dimension))
+        #* Go to the deepest array and get it dimension
+        if type(ctx.explist[0]) == ArrayLit:
+
+            #* Check case {{a,b},{c}}
+            for expr in ctx.explist[1:]:
+                if len(ctx.explist[0].explist) != len(expr.explist):
+                    return [], None
+
+            child_dimension, arrayLitType = self.visit(ctx.explist[0], o)
+            for expr in ctx.explist[1:]:
+                child_dimension2, arrayLitType2 = self.visit(expr, o)
+                if child_dimension != child_dimension2:
+                    return [], None
+                if type(arrayLitType) != type(arrayLitType2):
+                    return [], None
+                
+            return [dimension] + child_dimension, arrayLitType
+        else:
+        #* Get type of expr in array
+        #* Check if all expr in array are the same type
+            arrayLitType = self.visit(ctx.explist[0], o)
+            for expr in ctx.explist:
+                typeExpr = self.visit(expr, o)
+                if type(typeExpr) != type(arrayLitType):
+                    raise IllegalArrayLiteral(ctx)
+            return [dimension] ,arrayLitType
 
     def visitFuncCall(self, ctx, o): pass
 
@@ -253,33 +293,51 @@ class StaticChecker(Visitor):
 
         #* Initialize case
         if ctx.init:
-            initType = self.visit(ctx.init, o)
+            try:
+                dimensionArrayLit, typeInit = self.visit(ctx.init,o)
+            except:
+                typeInit = self.visit(ctx.init,o)
+
             print("-----------------------------")
             print(ctx)
             print(type(ctx.typ))
-            print(type(initType))
+            print(type(typeInit))
 
             #* AutoType
             if type(ctx.typ) == AutoType: 
-                return Symbol(ctx.name, initType)
+                return Symbol(ctx.name, typeInit)
 
             #* Auto ArrayType & ArrayType
             if type(ctx.typ) == ArrayType:
+                #* {{a,b}, {c}}
+                if dimensionArrayLit == [] and typeInit == None:
+                    raise TypeMismatchInVarDecl(ctx)
+
                 typeArrayLit = ctx.typ
-                if type(typeArrayLit.typ) == type(initType):
+                dimensionArrayLit = Tool.int_to_str(Tool.flatten(dimensionArrayLit))
+
+                #* ArrayDimension [i,j] = ArrayLitDimension [i,j] 
+                # print(typeArrayLit.dimensions)
+                # print(dimensionArrayLit)
+                if typeArrayLit.dimensions != dimensionArrayLit:
+                    raise TypeMismatchInVarDecl(ctx)
+
+                if type(typeArrayLit.typ) == type(typeInit):
                     return Symbol(ctx.name, ctx.typ)
+                
+                #* Auto ArrayType
                 elif type(typeArrayLit.typ) == AutoType:
-                    typeArrayLit.typ = initType
+                    typeArrayLit.typ = typeInit
                     return Symbol(ctx.name, typeArrayLit)
 
             #* FloatType = IntegerType
-            if type(ctx.typ) == FloatType and type(initType) == IntegerType:
+            if type(ctx.typ) == FloatType and type(typeInit) == IntegerType:
                 #! Convert Integer to Float
                 return Symbol(ctx.name, FloatType())
             
             #* LeftType = RightType
-            if type(initType) == type(ctx.typ):
-                return Symbol(ctx.name, initType)
+            if type(typeInit) == type(ctx.typ):
+                return Symbol(ctx.name, typeInit)
             else:
                 raise TypeMismatchInVarDecl(ctx)
         
@@ -318,10 +376,10 @@ class StaticChecker(Visitor):
         Tool.CheckRedeclare(self, ctx.name, o)
         
         #* Check inherit 
-        if ctx.inherit:
-            #* yes -> get inherit param + param in current scope
-            Tool.CheckInherit(self, ctx.inherit, o)
-        else:
+        # if ctx.inherit:
+        #     #* yes -> get inherit param + param in current scope
+        #     Tool.CheckInherit(self, ctx.inherit, o)
+        # else:
             #* no -> get param in current scope 
             
         #* Check return type (AutoType)

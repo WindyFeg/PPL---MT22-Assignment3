@@ -1,1 +1,1 @@
-Type mismatch in expression: ArrayLit([ArrayCell(a, [IntegerLit(1)]), Id(d), ArrayCell(b, [IntegerLit(1)])])
+Type mismatch in Variable Declaration: VarDecl(a, ArrayType([1, 2], AutoType), ArrayLit([StringLit(true), StringLit(1)]))

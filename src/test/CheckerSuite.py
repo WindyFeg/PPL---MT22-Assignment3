@@ -140,7 +140,7 @@ d : auto = a == b;
 
     def test_array_decl2(self):
         input = """
-        a: array [1,2] of boolean = {true, true};
+        a: array [2] of boolean = {true, true};
         """
         expect = "No entry point"
         self.assertTrue(TestChecker.test(input, expect, 418))
@@ -154,15 +154,15 @@ d : auto = a == b;
 
     def test_array_decl3(self):
         input = """
-        a: array [1,2] of string = {"true", "1"};
-        b: array [1,2] of boolean = {true, 1};
+        a: array [1,2] of string;
+        b: array [2] of boolean = {true, 1};
         """
-        expect = "Type mismatch in expression: ArrayLit([BooleanLit(True), IntegerLit(1)])"
+        expect = "Illegal array literal: ArrayLit([BooleanLit(True), IntegerLit(1)])"
         self.assertTrue(TestChecker.test(input, expect, 420))
 
     def test_array_decl4(self):
         input = """
-        a: array [1,2] of string = {"true", "1"};
+        a: array [1,2] of string;
         a: array [1,2] of boolean = {true, 1};
         """
         expect = "Redeclared Variable: a"
@@ -170,10 +170,10 @@ d : auto = a == b;
 
     def test_array_decl5(self):
         input = """
-        a: array [1,2] of string = {"true", "1"};
-        b: array [1,2,3,4] of string = {a[1]};
+        a: array [1,2] of string;
+        b: array [1,2,3,4] of string = { a[1] };
         """
-        expect = "No entry point"
+        expect = "Type mismatch in Variable Declaration: VarDecl(b, ArrayType([1, 2, 3, 4], StringType), ArrayLit([ArrayCell(a, [IntegerLit(1)])]))"
         self.assertTrue(TestChecker.test(input, expect, 422))
     
     def test_array_decl6(self):
@@ -181,15 +181,15 @@ d : auto = a == b;
         a: array [1,2] of string = {"true", "1"};
         b: array [1,2,3,4] of boolean = {a[1]};
         """
-        expect = "Type mismatch in Variable Declaration: VarDecl(b, ArrayType([1, 2, 3, 4], BooleanType), ArrayLit([ArrayCell(a, [IntegerLit(1)])]))"
+        expect = "Type mismatch in Variable Declaration: VarDecl(a, ArrayType([1, 2], StringType), ArrayLit([StringLit(true), StringLit(1)]))"
         self.assertTrue(TestChecker.test(input, expect, 423))
 
     def test_auto_array(self):
         input = """
         a: array [1,2] of auto = {"true", "1"};
-        b: array [1,2,3,4] of auto = {a[1]};
+        b: array [1] of auto = {a[1]};
         """
-        expect = "No entry point"
+        expect = "Type mismatch in Variable Declaration: VarDecl(a, ArrayType([1, 2], AutoType), ArrayLit([StringLit(true), StringLit(1)]))"
         self.assertTrue(TestChecker.test(input, expect, 424))
 
     def test_auto_array1(self):
@@ -199,7 +199,7 @@ d : auto = a == b;
         d: boolean = false;
         c: array [1,2,3,4] of auto = {a[1], d, b[1]};
         """
-        expect = "Type mismatch in expression: ArrayLit([ArrayCell(a, [IntegerLit(1)]), Id(d), ArrayCell(b, [IntegerLit(1)])])"
+        expect = "Type mismatch in Variable Declaration: VarDecl(a, ArrayType([1, 2], AutoType), ArrayLit([StringLit(true), StringLit(1)]))"
         self.assertTrue(TestChecker.test(input, expect, 425))
 
     def test_auto_array2(self):
@@ -218,7 +218,7 @@ d : auto = a == b;
         arr: array [1,2] of auto = { b };
         b = "1" :: arr[4];
         """
-        expect = "No entry point"
+        expect = "Type mismatch in Variable Declaration: VarDecl(arr, ArrayType([1, 2], AutoType), ArrayLit([Id(b)]))"
         self.assertTrue(TestChecker.test(input, expect, 426))
 
     def test_auto_array4(self):
@@ -228,7 +228,7 @@ d : auto = a == b;
         arr: array [1,2] of auto = { b };
         b = "1" :: arr[4];
         """
-        expect = "No entry point"
+        expect = "Type mismatch in Variable Declaration: VarDecl(arr, ArrayType([1, 2], AutoType), ArrayLit([Id(b)]))"
         self.assertTrue(TestChecker.test(input, expect, 426))
     
     def test_assign_stmt(self):
@@ -253,9 +253,38 @@ d : auto = a == b;
         expect = "No entry point"
         self.assertTrue(TestChecker.test(input, expect, 428))
 
-    def test_assign_stmt2(self):
-        input = """
-        b: integer = a[1];
-        """
+    def test_long_vardecl6(self):
+        input = """b: integer = a[1];"""
         expect = "Undeclared Identifier: a"
         self.assertTrue(TestChecker.test(input, expect, 429))
+
+    def test_long_vardecl7(self):
+        input = """a: array [2] of integer;
+                    b: integer = a[1.0];"""
+        expect = "Type mismatch in expression: ArrayCell(a, [FloatLit(1.0)])"
+        self.assertTrue(TestChecker.test(input, expect, 430))
+    
+    def test_long_vardecl8(self):
+        input = """a: array [2] of boolean;
+                    b: integer = a[1];"""
+        expect = "Type mismatch in Variable Declaration: VarDecl(b, IntegerType, ArrayCell(a, [IntegerLit(1)]))"
+        self.assertTrue(TestChecker.test(input, expect, 431))
+
+    def test_long_vardecl9(self):
+        input = """a: array [2,2] of integer = { { {1,"a"} , {3,4} }, { {5,6}, {7,8} } };"""
+        expect = "Illegal array literal: ArrayLit([IntegerLit(1), StringLit(a)])"
+        self.assertTrue(TestChecker.test(input, expect, 432))
+
+    def test_long_vardecl10(self):
+        input = """
+a: array [2,2] of integer = { {1,2}, {1,2,3} };
+                  b: string = a[1];"""
+        expect = "Type mismatch in Variable Declaration: VarDecl(a, ArrayType([2, 2], IntegerType), ArrayLit([ArrayLit([IntegerLit(1), IntegerLit(2)]), ArrayLit([IntegerLit(1), IntegerLit(2), IntegerLit(3)])]))"
+        self.assertTrue(TestChecker.test(input, expect, 433))
+    
+    def test_long_vardecl11(self):
+        input = """
+a: array [2,2] of auto = { {1,2}, {1, true} };
+                    b: integer = a[1];"""
+        expect = "Illegal array literal: ArrayLit([IntegerLit(1), BooleanLit(True)])"
+        self.assertTrue(TestChecker.test(input, expect, 434))
