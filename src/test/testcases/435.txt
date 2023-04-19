@@ -1,0 +1,6 @@
+
+        foo: integer = 2;
+        foo : function integer (c: integer, b: integer) {
+        
+        }
+        

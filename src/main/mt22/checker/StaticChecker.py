@@ -12,13 +12,17 @@ class NoType:
 class Type(AST):
     pass
 
+class FunctionType(Type):
+    def __str__(self):
+        return self.__class__.__name__
+    
+
+    
 
 @dataclass
 class Symbol:
     name: str
     mtype: Type #@dimensions: list[int], typ: Type
-    paramTypes: List[Type] = None
-    returnType: Type = None
     
     def __repr__(self) -> str:
         return (
@@ -26,8 +30,6 @@ class Symbol:
             + str(self.name)
             + ", "
             + str(self.mtype)
-            # + str(self.params_to_str())
-            # + str(self.return_to_str())
             + ")"
         )
     
@@ -36,12 +38,60 @@ class Symbol:
             return False
         return self.name == other.name and self.mtype == other.mtype
     
+    def ChangeType(self, typ):
+        self.mtype = typ
 
+    def GetType(self):
+        return self.mtype
+    
+    def GetName(self):
+        return self.name
+    
+@dataclass
+class FunctionSymbol:
+    name: str
+    returnType: Type
+    params: List[Symbol]
+    inheritParams: List[Symbol] = None
+
+    def __repr__(self) -> str:
+        return (
+            "FunctionSymbol(" 
+            + self.name
+            + ", "
+            + str(self.returnType)
+            + ", "
+            + str(self.params)
+            + ", "
+            + str(self.inheritParams)
+            + ")"
+        )
+    
+    def __eq__(self, other) -> bool:
+        if type(self) is not type(other):
+            return False
+        return self.name == other.name and self.mtype == other.mtype
+    
+    def GetParams(self):
+        return self.params
+    
+    def GetInheritParams(self):
+        return self.inheritParams
+
+    def ChangeReturnType(self, typ):
+        self.returnType = typ
+
+    def GetName(self):
+        return self.name
+    
 class Tool:
-    def CheckRedeclare(self, name, o):
+    def CheckRedeclare(self, name, mtype, o):
+        i = 0
         for symbol in o:
-            if symbol.name == name:
-                raise Redeclared(Variable(), name)
+            if symbol.GetName() == name and i == 0:
+                i= i+1
+            elif symbol.GetName() == name and i == 1:
+                raise Redeclared(mtype, name)
             
     def CheckArrayType(dimen):
         for item in dimen:
@@ -51,7 +101,7 @@ class Tool:
 
     def FindSymbol( name, o):
         for symbol in o:
-            if symbol.name == name:
+            if symbol.GetName() == name:
                 return symbol
         raise Undeclared(Identifier(), name)
     
@@ -96,8 +146,10 @@ class StaticChecker(Visitor):
     def visitStringType(self, ctx, o):
         return StringType()
     
-    def visitArrayType(self, ctx, o):
-        return ArrayType()
+    #%ArrayType #self.dimensions = dimensions
+    #% self.typ = typ
+    def visitArrayType(self, ctx: ArrayType, o):
+        return ctx
             
     def visitAutoType(self, ctx, o):
         return AutoType()
@@ -194,19 +246,16 @@ class StaticChecker(Visitor):
 
     def visitId(self, ctx, o): 
         #* This will loop from outer to inner
-        name = ctx.name
-        id = Tool.FindSymbol(name, o)
-        return id.mtype
+        return Tool.FindSymbol(ctx.name, o).GetType()
+    
     #% ArrayCell: name: str, cell: List[Expr] 
     #* E1[E2]: E1 is ArrayType, E2 is list of integer
     def visitArrayCell(self, ctx, o): 
-        arrayName = ctx.name
-        arrayCell = ctx.cell
-        symbol = Tool.FindSymbol(arrayName, o)
+        symbol = Tool.FindSymbol(ctx.name, o)
         #* E1 is ArrayType
         if type(symbol.mtype) == ArrayType:
             #* E2 is list of integer
-            for expr in arrayCell:
+            for expr in ctx.cell:
                 typeExpr = self.visit(expr, o)
                 if type(typeExpr) != IntegerType:
                     raise TypeMismatchInExpression(ctx)
@@ -252,10 +301,13 @@ class StaticChecker(Visitor):
 
     #$ STATEMENT 
     #%AssignStmt: lhs: LHS, rhs: Expr
-    def visitAssignStmt(self, ctx, o): 
+    def visitAssignStmt(self, ctx, o):
+        if o[0] == "env": 
+            return 
         lhs = self.visit(ctx.lhs, o)
         rhs = self.visit(ctx.rhs, o)
 
+        print("------------ASSIGN-STMT------------")
         print(type(lhs), type(rhs))
         #* Check if lsh is VoidType or ArrayType
         if type(lhs) in [VoidType, ArrayType]:
@@ -265,7 +317,7 @@ class StaticChecker(Visitor):
         if type(lhs) != type(rhs):
             #* Check if lsh is FloatType
             if type(lhs) == FloatType and type(rhs) == IntegerType:
-                return
+                return None
             raise TypeMismatchInStatement(ctx)
 
     def visitBlockStmt(self, ctx, o): pass
@@ -289,81 +341,100 @@ class StaticChecker(Visitor):
     #$ DECLARE
     #% Vardecl: #name: str, typ: Type, init: Expr or None = None)
     def visitVarDecl(self, ctx:VarDecl, o): 
-        Tool.CheckRedeclare(self, ctx.name, o)
+        if o[0] == "env":
+            return Symbol(ctx.name, self.visit(ctx.typ, o))
+        else:
+            Tool.CheckRedeclare(self, ctx.name, Variable(), o)
+            symbol = Tool.FindSymbol(ctx.name, o)
 
-        #* Initialize case
-        if ctx.init:
-            try:
-                dimensionArrayLit, typeInit = self.visit(ctx.init,o)
-            except:
-                typeInit = self.visit(ctx.init,o)
+            #* Initialize case
+            if ctx.init:
+                try:
+                    dimensionArrayLit, typeInit = self.visit(ctx.init,o)
+                except:
+                    typeInit = self.visit(ctx.init,o)
 
-            print("-----------------------------")
-            print(ctx)
-            print(type(ctx.typ))
-            print(type(typeInit))
+                print("-------------VAR-DECLARE----------------")
+                print(ctx)
+                print(type(ctx.typ))
+                print(type(typeInit))
 
-            #* AutoType
-            if type(ctx.typ) == AutoType: 
-                return Symbol(ctx.name, typeInit)
+                #* AutoType
+                if type(ctx.typ) == AutoType: 
+                    symbol.ChangeType(typeInit)
+                    return None
 
-            #* Auto ArrayType & ArrayType
-            if type(ctx.typ) == ArrayType:
-                #* {{a,b}, {c}}
-                if dimensionArrayLit == [] and typeInit == None:
-                    raise TypeMismatchInVarDecl(ctx)
+                #* Auto ArrayType & ArrayType
+                if type(ctx.typ) == ArrayType:
+                    #* {{a,b}, {c}}
+                    if dimensionArrayLit == [] and typeInit == None:
+                        raise TypeMismatchInVarDecl(ctx)
 
-                typeArrayLit = ctx.typ
-                dimensionArrayLit = Tool.int_to_str(Tool.flatten(dimensionArrayLit))
+                    typeArrayLit = ctx.typ
+                    dimensionArrayLit = Tool.int_to_str(Tool.flatten(dimensionArrayLit))
 
-                #* ArrayDimension [i,j] = ArrayLitDimension [i,j] 
-                # print(typeArrayLit.dimensions)
-                # print(dimensionArrayLit)
-                if typeArrayLit.dimensions != dimensionArrayLit:
-                    raise TypeMismatchInVarDecl(ctx)
+                    #* ArrayDimension [i,j] = ArrayLitDimension [i,j] 
+                    # print(typeArrayLit.dimensions)
+                    # print(dimensionArrayLit)
+                    if typeArrayLit.dimensions != dimensionArrayLit:
+                        raise TypeMismatchInVarDecl(ctx)
 
-                if type(typeArrayLit.typ) == type(typeInit):
-                    return Symbol(ctx.name, ctx.typ)
+                    if type(typeArrayLit.typ) == type(typeInit):
+                        symbol.ChangeType(ctx.typ)
+                        return None
+                    
+                    #* Auto ArrayType
+                    elif type(typeArrayLit.typ) == AutoType:
+                        typeArrayLit.typ = typeInit
+                        symbol.ChangeType(ctx.typ)
+                        return None
+
+                #* FloatType = IntegerType
+                if type(ctx.typ) == FloatType and type(typeInit) == IntegerType:
+                    symbol.ChangeType(FloatType())
+                    return None
                 
-                #* Auto ArrayType
-                elif type(typeArrayLit.typ) == AutoType:
-                    typeArrayLit.typ = typeInit
-                    return Symbol(ctx.name, typeArrayLit)
-
-            #* FloatType = IntegerType
-            if type(ctx.typ) == FloatType and type(typeInit) == IntegerType:
-                #! Convert Integer to Float
-                return Symbol(ctx.name, FloatType())
+                #* LeftType = RightType
+                if type(typeInit) == type(ctx.typ):
+                    symbol.ChangeType(typeInit)
+                    return None
+                else:
+                    raise TypeMismatchInVarDecl(ctx)
             
-            #* LeftType = RightType
-            if type(typeInit) == type(ctx.typ):
-                return Symbol(ctx.name, typeInit)
-            else:
-                raise TypeMismatchInVarDecl(ctx)
-        
-        #* No initialize 
-        #* AutoType
-        elif type(ctx.typ) == AutoType:
-            raise Invalid(Variable(),ctx)
-        
-        # VarDecl(n, ArrayType([1, 2], IntegerType))
-        #* ArrayType
-        elif type(ctx.typ) == ArrayType: 
-            if type(ctx.typ.typ) == AutoType:
+            #* No initialize 
+            #* AutoType
+            elif type(ctx.typ) == AutoType:
                 raise Invalid(Variable(),ctx)
-            #* Array 
-            #* Check "array [int]"
-            if ctx.typ.dimensions:
-                return Symbol(ctx.name, ctx.typ)
-        
-        #* Arithmetic 
-        return Symbol(ctx.name,ctx.typ)
+            
+            # VarDecl(n, ArrayType([1, 2], IntegerType))
+            #* ArrayType
+            elif type(ctx.typ) == ArrayType: 
+                if type(ctx.typ.typ) == AutoType:
+                    raise Invalid(Variable(),ctx)
+                #* Array 
+                #* Check "array [int]"
+                if ctx.typ.dimensions:
+                    symbol.ChangeType(ctx.typ)
+                    return None
+            
+            #* Arithmetic 
+            symbol.ChangeType(ctx.typ)
+            return None
 
     #% name: str, 
     #% typ: Type, 
     #% out: bool = False, 
     #% inherit: bool = False
-    def visitParamDecl(self, ctx, o): pass
+    def visitParamDecl(self, ctx, o): 
+        if o[0] == "env":
+            if ctx.inherit:
+                return Symbol(ctx.name, ctx.typ), True
+            return Symbol(ctx.name, ctx.typ), False
+        else:
+            functionSymbol = Tool.FindSymbol(ctx.name)
+            Tool.CheckRedeclare(self, ctx.name, Parameter(), functionSymbol.GetParams())
+            functionSymbol.ChangeReturnType(ctx.typ)
+            return True if ctx.name == "main" else None
 
     #% FuncDecl: # 
     #% name: str, 
@@ -373,35 +444,52 @@ class StaticChecker(Visitor):
     #% body: BlockStmt
     #* name: function <return-type> (<parameter-list>) [inherit <function-name>]?
     def visitFuncDecl(self, ctx, o):
-        Tool.CheckRedeclare(self, ctx.name, o)
-        
-        #* Check inherit 
-        # if ctx.inherit:
-        #     #* yes -> get inherit param + param in current scope
-        #     Tool.CheckInherit(self, ctx.inherit, o)
-        # else:
-            #* no -> get param in current scope 
+        if o[0] == "env":
+            inheritParams, params = [], []
+            for param in ctx.params:
+                par, isIhr = self.visit(param, o)
+                if isIhr:
+                    inheritParams.append(par)
+                params.append(par)
+            return FunctionSymbol(ctx.name, ctx.return_type, params, inheritParams)
+        else:
+            Tool.CheckRedeclare(self, ctx.name, Function(), o)
+            #* Check inherit 
+            if ctx.inherit:
+                return None
+            else:
+                #* no -> get param in current scope 
+                #* Check return type (AutoType)
+                #* save all into symbol table
+                return None
             
-        #* Check return type (AutoType)
-        #* save all into symbol table
-        
 
-        #* Check return type
-        return Symbol(ctx.name, ctx.return_type)
 
     #$ PROGRAM 
     #% program: #decls: List[Decl] 
+    #$ o = [Symbol(name, mtype),...]
     def visitProgram(self, ctx:Program, o):
-        #* o will have a list of Symbol(name, mtype)
-        o = []
-        #! has two loop to loop through vardecl and funcdecl
+        o = ["env", []]
+
+        #* Get all declaration
         for decl in ctx.decls:
-            o.append(self.visit(decl, o))
-        
+            if self.visit(decl, o) is not None:
+                o[1].append(self.visit(decl, o))
+        o = o[1]
+
+        print("------------ROUND1----------------")
         for i in o:
-            print("----------------------------")
-            print("print Sym")
             print(repr(i))
-        #! check if there is a main function
+
+        for decl in ctx.decls:
+            self.visit(decl, o)
+        
+        print("--------------ROUND2--------------")
+        for i in o:
+            print(repr(i))
+
+        #* Check main function
+        # if mainFunction:
         raise NoEntryPoint()
+
         

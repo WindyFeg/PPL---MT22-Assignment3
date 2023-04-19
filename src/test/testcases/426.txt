@@ -1,6 +1,5 @@
 
         a: string;
         b: auto = a;
-        arr: array [1,2] of auto = { b };
-        b = "1" :: arr[4];
+        b = "aloha";
         

@@ -51,8 +51,7 @@ class ASTGenSuite(unittest.TestCase):
 
     def test_to_see_ast(self):
         """To see AST"""
-        input = """a: array [1,2] of integer; 
-a[2,2]"""
+        input = """a: array [1,2] of integer; """
         expect = ""
         self.assertTrue(TestAST.test(input, expect, 305))
     

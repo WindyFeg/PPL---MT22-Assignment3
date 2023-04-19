@@ -149,7 +149,7 @@ d : auto = a == b;
         input = """
         a: array [1,2] of boolean = {true, 1};
         """
-        expect = "Type mismatch in expression: ArrayLit([BooleanLit(True), IntegerLit(1)])"
+        expect = "Illegal array literal: ArrayLit([BooleanLit(True), IntegerLit(1)])"
         self.assertTrue(TestChecker.test(input, expect, 419))
 
     def test_array_decl3(self):
@@ -211,26 +211,6 @@ d : auto = a == b;
         expect = "No entry point"
         self.assertTrue(TestChecker.test(input, expect, 426))
 
-    def test_auto_array3(self):
-        input = """
-        a: string;
-        b: auto = a;
-        arr: array [1,2] of auto = { b };
-        b = "1" :: arr[4];
-        """
-        expect = "Type mismatch in Variable Declaration: VarDecl(arr, ArrayType([1, 2], AutoType), ArrayLit([Id(b)]))"
-        self.assertTrue(TestChecker.test(input, expect, 426))
-
-    def test_auto_array4(self):
-        input = """
-        a: string;
-        b: auto = a;
-        arr: array [1,2] of auto = { b };
-        b = "1" :: arr[4];
-        """
-        expect = "Type mismatch in Variable Declaration: VarDecl(arr, ArrayType([1, 2], AutoType), ArrayLit([Id(b)]))"
-        self.assertTrue(TestChecker.test(input, expect, 426))
-    
     def test_assign_stmt(self):
         input = """
         /*$?? b still dose not have any value*/ 
@@ -288,3 +268,43 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
                     b: integer = a[1];"""
         expect = "Illegal array literal: ArrayLit([IntegerLit(1), BooleanLit(True)])"
         self.assertTrue(TestChecker.test(input, expect, 434))
+
+    def test_function(self):
+        input = """
+        foo: integer = 2;
+        foo : function integer (c: integer, b: integer) {
+        
+        }
+        """
+        expect = "Redeclared Variable: foo"
+        self.assertTrue(TestChecker.test(input, expect, 435))
+
+    def test_auto_array3(self):
+        input = """
+        a: string;
+        b: auto = a;
+        arr: array [1,2] of auto = { b };
+        b = "1" :: arr[4];
+        """
+        expect = "Type mismatch in Variable Declaration: VarDecl(arr, ArrayType([1, 2], AutoType), ArrayLit([Id(b)]))"
+        self.assertTrue(TestChecker.test(input, expect, 436))
+    
+
+    def test_auto_array4(self):
+        input = """
+        a: string;
+        b: auto = a;
+        arr: array [1,2] of auto = { b };
+        b = "1" :: arr[4];
+        """
+        expect = "Type mismatch in Variable Declaration: VarDecl(arr, ArrayType([1, 2], AutoType), ArrayLit([Id(b)]))"
+        self.assertTrue(TestChecker.test(input, expect, 437))
+
+    def test_function2(self):
+        input = """
+        foo: integer = foo2(1,2);
+        foo2 : function integer (c: integer, b: integer) {
+        }
+        """
+        expect = "Redeclared Variable: foo"
+        self.assertTrue(TestChecker.test(input, expect, 438))
