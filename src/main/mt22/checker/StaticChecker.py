@@ -84,6 +84,9 @@ class FunctionSymbol:
     def GetName(self):
         return self.name
     
+    def GetReturnType(self):
+        return self.returnType
+    
 class Tool:
     def CheckRedeclare(self, name, mtype, o):
         i = 0
@@ -297,7 +300,26 @@ class StaticChecker(Visitor):
                     raise IllegalArrayLiteral(ctx)
             return [dimension] ,arrayLitType
 
-    def visitFuncCall(self, ctx, o): pass
+    #% FuncCall: #name: str, args: List[Expr] 
+    def visitFuncCall(self, ctx: FuncCall, o):
+        #* Get symbol of function
+        symbol = Tool.FindSymbol(ctx.name, o)
+        
+        #* Check if symbol is function
+        if type(symbol) != FunctionSymbol:
+            raise Undeclared(Function(), ctx.name)
+
+        #* Check if number of args is correct
+        if len(symbol.GetParams()) != len(ctx.args):
+            raise TypeMismatchInExpression(ctx)
+        
+        #* Check Type of args
+        for i in range(len(ctx.args)):
+            arguementType = self.visit(ctx.args[i], o)
+            paramType = symbol.GetParams()[i].GetType()
+            if type(arguementType) != type(paramType):
+                raise TypeMismatchInExpression(ctx)
+        return symbol.GetReturnType()
 
     #$ STATEMENT 
     #%AssignStmt: lhs: LHS, rhs: Expr
@@ -394,6 +416,12 @@ class StaticChecker(Visitor):
                     symbol.ChangeType(FloatType())
                     return None
                 
+                #* RightType = AutoType
+                #! Check this again
+                if type(typeInit) == AutoType:
+                    symbol.ChangeType(ctx.typ)
+                    return None
+                
                 #* LeftType = RightType
                 if type(typeInit) == type(ctx.typ):
                     symbol.ChangeType(typeInit)
@@ -456,11 +484,26 @@ class StaticChecker(Visitor):
             Tool.CheckRedeclare(self, ctx.name, Function(), o)
             #* Check inherit 
             if ctx.inherit:
+                inheritFunction = Tool.FindSymbol(ctx.inherit, o)
+
+                print("Inherit function")
+                print(inheritFunction)
+                
+                #* Check redeclare in params
+                functionParams = Tool.FindSymbol(ctx.name, o).GetParams()
+                inheritFunctionParams_FunctionParams = inheritFunction.GetParams() + functionParams
+                for param in ctx.params:
+                    Tool.CheckRedeclare(self, param.name, Parameter(), inheritFunctionParams_FunctionParams)
                 return None
             else:
                 #* no -> get param in current scope 
                 #* Check return type (AutoType)
                 #* save all into symbol table
+
+                #* Check redeclare in params
+                functionParams = Tool.FindSymbol(ctx.name, o).GetParams()
+                for param in ctx.params:
+                    Tool.CheckRedeclare(self, param.name, Parameter(), functionParams)
                 return None
             
 
