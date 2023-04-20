@@ -99,6 +99,12 @@ class Tool:
                     raise Redeclared(mtype, symbol.GetName())
                 return
             seen.add(symbol.GetName())
+
+    def CheckParamsInvalid(self,name, mtype, o):
+        for symbol in o:
+            if symbol.GetName() == name:
+                raise Invalid(mtype, symbol.GetName())
+        return
             
     def CheckArrayType(dimen):
         for item in dimen:
@@ -158,10 +164,10 @@ class StaticChecker(Visitor):
     def visitArrayType(self, ctx: ArrayType, o):
         return ctx
             
-    def visitAutoType(self, ctx, o):
+    def visitAutoType(self, ctx:AutoType, o):
         return AutoType()
     
-    def visitVoidType(self, ctx, o):
+    def visitVoidType(self, ctx:VoidType, o):
         return VoidType()
     
     def visitIntegerLit(self, ctx:IntegerLit, o): 
@@ -392,12 +398,11 @@ class StaticChecker(Visitor):
 
         print(functionParams)
         #* Normal body
-        o_temp = ["env", functionParams]
+        o_temp = ["env", functionParams] + o
         for i in ctx.body:
             if type(i) == VarDecl:
                 o_temp[1].append(self.visit(i, o_temp))
         
-        print(o_temp)
         for i in ctx.body:
             self.visit(i, o_temp[1])
         
@@ -558,27 +563,30 @@ class StaticChecker(Visitor):
                 params.append(par)
             return FunctionSymbol(ctx.name, ctx.return_type, params, inheritParams)
         else:
+            #* Check redeclare
             Tool.CheckRedeclare(self, ctx.name, Function(), o)
+
+            #* Check redeclare in params
+            thisFunction = Tool.FindSymbol(ctx.name, Function(), o)
+            functionParams = thisFunction.GetParams()
+            for param in ctx.params:
+                Tool.CheckRedeclare(self, param.name, Parameter(), functionParams)
+
             #* Check inherit 
             if ctx.inherit:
                 inheritFunction = Tool.FindSymbol(ctx.inherit, Function(), o)
 
-                print("Inherit function")
-                print(inheritFunction)
+                #* Check if Child has params like Father inherit params
+                for param in functionParams:
+                    Tool.CheckParamsInvalid(self, param.GetName(), Parameter(), inheritFunction.GetInheritParams())
                 
-                #* Check redeclare in params
-                functionParams = Tool.FindSymbol(ctx.name, Identifier(), o).GetParams()
-                inheritFunctionParams_FunctionParams = inheritFunction.GetParams() + functionParams
-                for param in ctx.params:
-                    Tool.CheckRedeclare(self, param.name, Parameter(), inheritFunctionParams_FunctionParams)
+                #* Father inherit params + Son params
+                inheritFunctionParams_FunctionParams = inheritFunction.GetInheritParams() + functionParams
+                
+                self.visit(ctx.body, o + [ctx.name])
                 return None
             else:
-                #* Check redeclare in params
-                thisFunction = Tool.FindSymbol(ctx.name, Identifier(), o)
-                functionParams = thisFunction.GetParams()
-                for param in ctx.params:
-                    Tool.CheckRedeclare(self, param.name, Parameter(), functionParams)
-
+                
                 self.visit(ctx.body, o + [ctx.name])
                 return None
             

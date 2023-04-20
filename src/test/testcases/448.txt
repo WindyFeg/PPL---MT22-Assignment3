@@ -1,6 +1,8 @@
 
         foo : function integer (inherit c : integer, d: integer) {
             a: integer;
-            b: integer;
+            b: float = 34.0;
+            a = 2 + 34;
+            b = a + 2.4;
         }
         
