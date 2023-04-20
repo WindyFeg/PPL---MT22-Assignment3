@@ -1,0 +1,4 @@
+
+        foo2 : function integer (c: auto, d: auto) inherit foo {
+        }
+        

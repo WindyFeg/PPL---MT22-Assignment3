@@ -81,6 +81,9 @@ class FunctionSymbol:
     def ChangeReturnType(self, typ):
         self.returnType = typ
 
+    def ChangeParamsType(self, index, typ):
+        self.params[index].ChangeType(typ)
+
     def GetName(self):
         return self.name
     
@@ -102,11 +105,11 @@ class Tool:
                 return False
         return True
 
-    def FindSymbol( name, o):
+    def FindSymbol( name,type, o):
         for symbol in o:
             if symbol.GetName() == name:
                 return symbol
-        raise Undeclared(Identifier(), name)
+        raise Undeclared(type, name)
     
     def CheckType(symbol, type):
         return type == symbol.mtype
@@ -199,7 +202,12 @@ class StaticChecker(Visitor):
                 return FloatType()
             elif typeLeft == FloatType and typeRight == IntegerType:
                 return FloatType()
-            
+
+            #* Auto type
+            elif typeLeft in [IntegerType, FloatType] and typeRight == AutoType:
+                symbol = Tool.FindSymbol(ctx.right.name, Function(), o)
+                symbol.ChangeReturnType(left)
+                return left
             else:
                 raise TypeMismatchInExpression(ctx)
         
@@ -207,6 +215,11 @@ class StaticChecker(Visitor):
         if op in ['&&', '||']:
             if typeLeft == typeRight and typeLeft == BooleanType:
                 return BooleanType()
+            #* Auto type
+            if typeLeft == BooleanType and typeRight == AutoType:
+                symbol = Tool.FindSymbol(ctx.right.name, Function(), o)
+                symbol.ChangeReturnType(left)
+                return left
             else:
                 raise TypeMismatchInExpression(ctx)
 
@@ -214,6 +227,10 @@ class StaticChecker(Visitor):
         if op == '::':
             if typeLeft == typeRight and typeLeft == StringType:
                 return StringType()
+            if typeLeft == StringType and typeRight == AutoType:
+                symbol = Tool.FindSymbol(ctx.right.name, Function(), o)
+                symbol.ChangeReturnType(left)
+                return left
             else:
                 raise TypeMismatchInExpression(ctx)
             
@@ -221,11 +238,23 @@ class StaticChecker(Visitor):
         if op in ['<', '>', '<=', '>=']:
             if typeLeft in [IntegerType, FloatType] and typeRight in [IntegerType, FloatType]:
                 return BooleanType()
+            
+            #* Auto type
+            if typeLeft in [IntegerType, FloatType] and typeRight == AutoType:
+                symbol = Tool.FindSymbol(ctx.right.name, Function(), o)
+                symbol.ChangeReturnType(left)
+                return BooleanType()
             else:
                 raise TypeMismatchInExpression(ctx)
         
         if op in ['==', '!=']:
             if typeLeft == typeRight and typeLeft in [IntegerType, BooleanType]:
+                return BooleanType()
+            
+            #* Auto type
+            if typeLeft in [IntegerType, BooleanType] and typeRight == AutoType:
+                symbol = Tool.FindSymbol(ctx.right.name, Function(), o)
+                symbol.ChangeReturnType(left)
                 return BooleanType()
             else:
                 raise TypeMismatchInExpression(ctx)
@@ -249,12 +278,12 @@ class StaticChecker(Visitor):
 
     def visitId(self, ctx, o): 
         #* This will loop from outer to inner
-        return Tool.FindSymbol(ctx.name, o).GetType()
+        return Tool.FindSymbol(ctx.name,Identifier(), o).GetType()
     
     #% ArrayCell: name: str, cell: List[Expr] 
     #* E1[E2]: E1 is ArrayType, E2 is list of integer
     def visitArrayCell(self, ctx, o): 
-        symbol = Tool.FindSymbol(ctx.name, o)
+        symbol = Tool.FindSymbol(ctx.name, Identifier(), o)
         #* E1 is ArrayType
         if type(symbol.mtype) == ArrayType:
             #* E2 is list of integer
@@ -303,7 +332,7 @@ class StaticChecker(Visitor):
     #% FuncCall: #name: str, args: List[Expr] 
     def visitFuncCall(self, ctx: FuncCall, o):
         #* Get symbol of function
-        symbol = Tool.FindSymbol(ctx.name, o)
+        symbol = Tool.FindSymbol(ctx.name, Identifier(), o)
         
         #* Check if symbol is function
         if type(symbol) != FunctionSymbol:
@@ -318,6 +347,15 @@ class StaticChecker(Visitor):
             arguementType = self.visit(ctx.args[i], o)
             paramType = symbol.GetParams()[i].GetType()
             if type(arguementType) != type(paramType):
+
+                #* AutoType
+                if type(paramType) == AutoType:
+                    symbol.ChangeParamsType(i, arguementType)
+                    continue
+
+                #* IntegerType = FloatType
+                if type(arguementType) == IntegerType and type(paramType) == FloatType:
+                    continue
                 raise TypeMismatchInExpression(ctx)
         return symbol.GetReturnType()
 
@@ -342,7 +380,9 @@ class StaticChecker(Visitor):
                 return None
             raise TypeMismatchInStatement(ctx)
 
+    #% body: List[Stmt or VarDecl]
     def visitBlockStmt(self, ctx, o): pass
+    
     def visitIfStmt(self, ctx, o): pass
     def visitForStmt(self, ctx, o): pass
     def visitWhileStmt(self, ctx, o): pass
@@ -367,7 +407,7 @@ class StaticChecker(Visitor):
             return Symbol(ctx.name, self.visit(ctx.typ, o))
         else:
             Tool.CheckRedeclare(self, ctx.name, Variable(), o)
-            symbol = Tool.FindSymbol(ctx.name, o)
+            symbol = Tool.FindSymbol(ctx.name, Identifier(), o)
 
             #* Initialize case
             if ctx.init:
@@ -417,9 +457,12 @@ class StaticChecker(Visitor):
                     return None
                 
                 #* RightType = AutoType
-                #! Check this again
                 if type(typeInit) == AutoType:
-                    symbol.ChangeType(ctx.typ)
+                    if type(ctx.init) == FuncCall:
+                        functionCall = Tool.FindSymbol(ctx.init.name, Identifier(), o)
+                        functionCall.ChangeReturnType(ctx.typ)
+                    else:
+                        symbol.ChangeType(ctx.typ)
                     return None
                 
                 #* LeftType = RightType
@@ -459,7 +502,7 @@ class StaticChecker(Visitor):
                 return Symbol(ctx.name, ctx.typ), True
             return Symbol(ctx.name, ctx.typ), False
         else:
-            functionSymbol = Tool.FindSymbol(ctx.name)
+            functionSymbol = Tool.FindSymbol(ctx.name, Identifier(), o)
             Tool.CheckRedeclare(self, ctx.name, Parameter(), functionSymbol.GetParams())
             functionSymbol.ChangeReturnType(ctx.typ)
             return True if ctx.name == "main" else None
@@ -484,13 +527,13 @@ class StaticChecker(Visitor):
             Tool.CheckRedeclare(self, ctx.name, Function(), o)
             #* Check inherit 
             if ctx.inherit:
-                inheritFunction = Tool.FindSymbol(ctx.inherit, o)
+                inheritFunction = Tool.FindSymbol(ctx.inherit, Function(), o)
 
                 print("Inherit function")
                 print(inheritFunction)
                 
                 #* Check redeclare in params
-                functionParams = Tool.FindSymbol(ctx.name, o).GetParams()
+                functionParams = Tool.FindSymbol(ctx.name, Identifier(), o).GetParams()
                 inheritFunctionParams_FunctionParams = inheritFunction.GetParams() + functionParams
                 for param in ctx.params:
                     Tool.CheckRedeclare(self, param.name, Parameter(), inheritFunctionParams_FunctionParams)
@@ -501,7 +544,7 @@ class StaticChecker(Visitor):
                 #* save all into symbol table
 
                 #* Check redeclare in params
-                functionParams = Tool.FindSymbol(ctx.name, o).GetParams()
+                functionParams = Tool.FindSymbol(ctx.name, Identifier(), o).GetParams()
                 for param in ctx.params:
                     Tool.CheckRedeclare(self, param.name, Parameter(), functionParams)
                 return None

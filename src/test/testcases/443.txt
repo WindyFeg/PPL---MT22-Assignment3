@@ -1,0 +1,5 @@
+
+        foo: integer = foo2(1.0,2);
+        foo2 : function integer (c: auto, d: auto) {
+        }
+        
