@@ -91,13 +91,14 @@ class FunctionSymbol:
         return self.returnType
     
 class Tool:
-    def CheckRedeclare(self, name, mtype, o):
-        i = 0
+    def CheckRedeclare(self,name, mtype, o):
+        seen = set()
         for symbol in o:
-            if symbol.GetName() == name and i == 0:
-                i= i+1
-            elif symbol.GetName() == name and i == 1:
-                raise Redeclared(mtype, name)
+            if symbol.GetName() in seen:
+                if symbol.GetName() == name:
+                    raise Redeclared(mtype, symbol.GetName())
+                return
+            seen.add(symbol.GetName())
             
     def CheckArrayType(dimen):
         for item in dimen:
@@ -380,12 +381,45 @@ class StaticChecker(Visitor):
                 return None
             raise TypeMismatchInStatement(ctx)
 
-    #% body: List[Stmt or VarDecl]
-    def visitBlockStmt(self, ctx, o): pass
-    
+    #% BlockStmt: #body: List[Stmt or VarDecl]
+    def visitBlockStmt(self, ctx:BlockStmt, o):
+        functionParams = []
+        #* Function Body
+        if type(o[len(o)-1]) == type(""):
+            #* Get all params of function
+            thisFunction = Tool.FindSymbol(o.pop(), Identifier(), o)
+            functionParams = thisFunction.GetParams()
+
+        print(functionParams)
+        #* Normal body
+        o_temp = ["env", functionParams]
+        for i in ctx.body:
+            if type(i) == VarDecl:
+                o_temp[1].append(self.visit(i, o_temp))
+        
+        print(o_temp)
+        for i in ctx.body:
+            self.visit(i, o_temp[1])
+        
+
+
+
+
+    #%IfStmt: #cond: Expr, 
+    #% tstmt: Stmt, 
+    #% fstmt: Stmt or None = None 
     def visitIfStmt(self, ctx, o): pass
+
+    #% ForStmt: #init: AssignStmt, 
+    #% cond: Expr, 
+    #% upd: Expr, 
+    #% stmt: Stmt
     def visitForStmt(self, ctx, o): pass
+
+    #% WhileStmt: #cond: Expr, stmt: Stmt 
     def visitWhileStmt(self, ctx, o): pass
+
+    #% DowhileStmt: #cond: Expr, stmt: BlockStmt
     def visitDoWhileStmt(self, ctx, o): pass
 
     def visitBreakStmt(self, ctx:BreakStmt, o): 
@@ -539,14 +573,13 @@ class StaticChecker(Visitor):
                     Tool.CheckRedeclare(self, param.name, Parameter(), inheritFunctionParams_FunctionParams)
                 return None
             else:
-                #* no -> get param in current scope 
-                #* Check return type (AutoType)
-                #* save all into symbol table
-
                 #* Check redeclare in params
-                functionParams = Tool.FindSymbol(ctx.name, Identifier(), o).GetParams()
+                thisFunction = Tool.FindSymbol(ctx.name, Identifier(), o)
+                functionParams = thisFunction.GetParams()
                 for param in ctx.params:
                     Tool.CheckRedeclare(self, param.name, Parameter(), functionParams)
+
+                self.visit(ctx.body, o + [ctx.name])
                 return None
             
 

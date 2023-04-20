@@ -373,9 +373,31 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
 
     def test_function10(self):
         input = """
-        foo: integer = 1 + foo2(1,2);
-        foo2 : function auto (c: integer, d: integer) {
+        a: integer;
+        b: integer;
+        b: integer;
+        a: integer;
+        """
+        expect = "Redeclared Variable: b"
+        self.assertTrue(TestChecker.test(input, expect, 446))
+
+    def test_function11(self):
+        input = """
+        foo : function integer (c: integer, d: integer) {
+            a: integer;
+            b: integer;
+            b: integer;
         }
         """
-        expect = "No entry point"
-        self.assertTrue(TestChecker.test(input, expect, 446))
+        expect = "Redeclared Variable: b"
+        self.assertTrue(TestChecker.test(input, expect, 447))
+
+    def test_function12(self):
+        input = """
+        foo : function integer (inherit c : integer, d: integer) {
+            a: integer;
+            b: integer;
+        }
+        """
+        expect = "Redeclared Variable: b"
+        self.assertTrue(TestChecker.test(input, expect, 448))

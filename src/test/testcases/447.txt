@@ -1,0 +1,7 @@
+
+        foo : function integer (c: integer, d: integer) {
+            a: integer;
+            b: integer;
+            b: integer;
+        }
+        

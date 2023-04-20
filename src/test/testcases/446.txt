@@ -1,5 +1,6 @@
 
-        foo: integer = 1 + foo2(1,2);
-        foo2 : function auto (c: integer, d: integer) {
-        }
+        a: integer;
+        b: integer;
+        b: integer;
+        a: integer;
         

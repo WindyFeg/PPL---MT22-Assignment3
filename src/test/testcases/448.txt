@@ -1,0 +1,6 @@
+
+        foo : function integer (inherit c : integer, d: integer) {
+            a: integer;
+            b: integer;
+        }
+        
