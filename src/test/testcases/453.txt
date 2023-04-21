@@ -1,0 +1,13 @@
+
+        a: integer;
+        b: integer = 5;
+        foo2: function auto (c: integer, d: integer) inherit foo{
+            super();
+            b: float = 5.0;
+            a: integer = b;
+            c: integer = foo(2.3,4);
+        }
+        foo : function integer ( a : float, b: integer) {
+            a: integer = b;
+        }
+        

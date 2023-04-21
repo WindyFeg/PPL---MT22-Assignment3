@@ -1,0 +1,8 @@
+
+        a: integer;
+        foo2: function auto (c: integer, d: integer) inherit foo{
+            a: integer;
+        }
+        foo : function integer ( a : float, b: integer) {
+        }
+        

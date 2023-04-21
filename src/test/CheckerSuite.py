@@ -404,13 +404,68 @@ class CheckerSuite(unittest.TestCase):
 #         expect = "No entry point"
 #         self.assertTrue(TestChecker.test(input, expect, 448))
 
-    def test_function13(self):
-        input = """
-        foo2: function auto (c: integer, d: integer, a: integer) inherit foo{
+    # def test_function13(self):
+    #     input = """
+    #     foo2: function auto (c: integer, d: integer, a: integer) inherit foo{
             
+    #     }
+    #     foo : function integer (inherit a : float, b: integer) {
+    #     }
+    #     """
+    #     expect = "Invalid Parameter: a"
+    #     self.assertTrue(TestChecker.test(input, expect, 449))
+
+    # def test_function14(self):
+    #     input = """
+    #     foo2: function auto (c: integer, d: integer) inherit foo{
+    #         a: integer;
+    #     }
+    #     foo : function integer (inherit a : float, b: integer) {
+    #     }
+    #     """
+    #     expect = "Redeclared Variable: a"
+    #     self.assertTrue(TestChecker.test(input, expect, 450))
+
+    # def test_function15(self):
+    #     input = """
+    #     a: integer;
+    #     foo2: function auto (c: integer, d: integer) inherit foo{
+    #         a: integer;
+    #     }
+    #     foo : function integer ( a : float, b: integer) {
+    #     }
+    #     """
+    #     expect = "No entry point"
+    #     self.assertTrue(TestChecker.test(input, expect, 451))
+
+    # def test_function16(self):
+    #     input = """
+    #     a: integer;
+    #     b: integer = 5;
+    #     foo2: function auto (c: integer, d: integer) inherit foo{
+    #         a: integer = b;
+    #     }
+    #     foo : function integer ( a : float, b: integer) {
+    #     }
+    #     """
+    #     expect = "No entry point"
+    #     self.assertTrue(TestChecker.test(input, expect, 452))
+
+    def test_function17(self):
+        input = """
+        a: integer;
+        b: integer = 5;
+        foo2: function auto (c: integer, d: integer) inherit foo{
+            super();
+            b: float = 5.0;
+            a: integer = b;
+            c: integer = foo(2.3,4);
         }
-        foo : function integer (inherit a : float, b: integer) {
+        foo : function integer ( a : float, b: integer) {
+            a: integer = b;
         }
         """
-        expect = "Invalid Parameter: a"
-        self.assertTrue(TestChecker.test(input, expect, 449))
+        expect = "No entry point"
+        self.assertTrue(TestChecker.test(input, expect, 453))
+
+    

@@ -72,6 +72,9 @@ class FunctionSymbol:
             return False
         return self.name == other.name and self.mtype == other.mtype
     
+    def GetIndexParams(self, index):
+        return self.params[index]
+    
     def GetParams(self):
         return self.params
     
@@ -89,6 +92,9 @@ class FunctionSymbol:
     
     def GetReturnType(self):
         return self.returnType
+    
+    
+                
     
 class Tool:
     def CheckRedeclare(self,name, mtype, o):
@@ -136,6 +142,19 @@ class Tool:
     
     def int_to_str(arr):
         return [str(i) for i in arr]
+    
+    def CheckArgsInFunction( name, args, ctx, o):
+        func = Tool.FindSymbol(name, Function(), o)
+        if type(func) != FunctionSymbol:
+            raise Undeclared(Function(), func.GetName())
+        
+        if len(func.GetParams()) != len(args):
+            raise TypeMismatchInExpression(ctx)
+        
+        for i in range(len(args)):
+            arg = self.visit(args[i], o)
+            if type(arg) != type(func.GetIndexParams[i].GetType()):
+                raise TypeMismatchInExpression(ctx)
 
 class StaticChecker(Visitor):
     def __init__(self, ast): 
@@ -390,25 +409,45 @@ class StaticChecker(Visitor):
     #% BlockStmt: #body: List[Stmt or VarDecl]
     def visitBlockStmt(self, ctx:BlockStmt, o):
         functionParams = []
+        body = ctx.body
+        
+        #$ [Symbol, "inheritFunctionName", "thisFunctionName" ]
         #* Function Body
         if type(o[len(o)-1]) == type(""):
             #* Get all params of function
             thisFunction = Tool.FindSymbol(o.pop(), Identifier(), o)
-            functionParams = thisFunction.GetParams()
 
+            #$ [Symbol, "inheritFunctionName"]
+            #* Get all params of inherit function 
+            if type(o[len(o)-1]) == type(""):
+                inheritFunction = Tool.FindSymbol(o.pop(), Identifier(), o)
+                functionParams = inheritFunction.GetInheritParams() 
+
+                #* Check super and PreventDefault
+                if body[0].name == "super":
+                    body[0].name = inheritFunction.GetName()
+                    self.visit(body[0], o + [inheritFunction.GetName()])
+                    body = body[1:]
+                elif body[0].name == "preventDefault":
+                    body = body[1:]
+                else:
+                    raise InvalidStatementInFunction(ctx)   
+
+            functionParams += thisFunction.GetParams()
+        
+        print("THIS IS PARAMS")
         print(functionParams)
         #* Normal body
-        o_temp = ["env", functionParams] + o
-        for i in ctx.body:
+        #! issue when declare outside function 
+        o_temp = ["env", functionParams + [o[1]]]
+        print(o_temp)
+        for i in body:
             if type(i) == VarDecl:
                 o_temp[1].append(self.visit(i, o_temp))
         
-        for i in ctx.body:
+        for i in body:
             self.visit(i, o_temp[1])
         
-
-
-
 
     #%IfStmt: #cond: Expr, 
     #% tstmt: Stmt, 
@@ -436,8 +475,23 @@ class StaticChecker(Visitor):
     #% ReturnStmt: expr: Expr
     def visitReturnStmt(self, ctx: ReturnStmt, o):
         return self.visit(ctx.expr, o) 
+    #% CallStmt: # name: str, args: List[Expr]
+    def visitCallStmt(self, ctx:CallStmt, o): 
+        #* PreventDefault
+        if ctx.name == "preventDefault":
+            return 
+        
+        #* super
+        #$ [Symbol, "inheritFunctionName"]
+        if ctx.name == "super" and type(o[len(o)-1]) == type(""):
+            fatherFunction = Tool.FindSymbol(o.pop(), Identifier(), o)
+            self.visit(fatherFunction, o)
+            return 
+
+        #* Call normal statement
+        Tool.CheckArgsInFunction(ctx.name, ctx.args, ctx, o)
+        return 
     
-    def visitCallStmt(self, ctx, o): pass
 
     #$ DECLARE
     #% Vardecl: #name: str, typ: Type, init: Expr or None = None)
@@ -583,11 +637,11 @@ class StaticChecker(Visitor):
                 #* Father inherit params + Son params
                 inheritFunctionParams_FunctionParams = inheritFunction.GetInheritParams() + functionParams
                 
-                self.visit(ctx.body, o + [ctx.name])
+                self.visit(ctx.body, o + [ctx.inherit,ctx.name])
                 return None
             else:
                 
-                self.visit(ctx.body, o + [ctx.name])
+                self.visit(ctx.body, o + [None, ctx.name])
                 return None
             
 
