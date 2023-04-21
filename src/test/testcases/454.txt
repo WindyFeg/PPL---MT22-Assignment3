@@ -1,0 +1,7 @@
+
+        a: integer = foo();
+        foo : function integer(){
+            a = 100;
+            return a;
+        }
+        

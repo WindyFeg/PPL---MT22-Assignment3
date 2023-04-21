@@ -143,7 +143,7 @@ class Tool:
     def int_to_str(arr):
         return [str(i) for i in arr]
     
-    def CheckArgsInFunction( name, args, ctx, o):
+    def CheckArgsInFunction(self, name, args, ctx, o):
         func = Tool.FindSymbol(name, Function(), o)
         if type(func) != FunctionSymbol:
             raise Undeclared(Function(), func.GetName())
@@ -153,7 +153,9 @@ class Tool:
         
         for i in range(len(args)):
             arg = self.visit(args[i], o)
-            if type(arg) != type(func.GetIndexParams[i].GetType()):
+            print("CHECK this aloooo")
+            print(func.GetIndexParams(i))
+            if type(arg) != type(func.GetIndexParams(i).GetType()):
                 raise TypeMismatchInExpression(ctx)
 
 class StaticChecker(Visitor):
@@ -404,6 +406,13 @@ class StaticChecker(Visitor):
             #* Check if lsh is FloatType
             if type(lhs) == FloatType and type(rhs) == IntegerType:
                 return None
+            
+            #* Check id = functionCall() -> AutoType
+            if type(rhs) == AutoType and type(ctx.rhs) == FuncCall:
+                symbol = Tool.FindSymbol(ctx.rhs.name, Function(), o)
+                symbol.ChangeReturnType(lhs)
+                return None
+
             raise TypeMismatchInStatement(ctx)
 
     #% BlockStmt: #body: List[Stmt or VarDecl]
@@ -411,16 +420,20 @@ class StaticChecker(Visitor):
         functionParams = []
         body = ctx.body
         
-        #$ [Symbol, "inheritFunctionName", "thisFunctionName" ]
         #* Function Body
         if type(o[len(o)-1]) == type(""):
-            #* Get all params of function
-            thisFunction = Tool.FindSymbol(o.pop(), Identifier(), o)
-
+            
+            #$ [Symbol, "inheritFunctionName", "thisFunctionName" ]
+            thisFunctionName = o.pop()
             #$ [Symbol, "inheritFunctionName"]
+            inheritFunctionName = o.pop()
+
+            #* Get all params of function
+            thisFunction = Tool.FindSymbol(thisFunctionName, Identifier(), o)
+
             #* Get all params of inherit function 
-            if type(o[len(o)-1]) == type(""):
-                inheritFunction = Tool.FindSymbol(o.pop(), Identifier(), o)
+            if inheritFunctionName is not None:
+                inheritFunction = Tool.FindSymbol(inheritFunctionName, Identifier(), o)
                 functionParams = inheritFunction.GetInheritParams() 
 
                 #* Check super and PreventDefault
@@ -432,20 +445,42 @@ class StaticChecker(Visitor):
                     body = body[1:]
                 else:
                     raise InvalidStatementInFunction(ctx)   
-
+            
+            #* Load params
             functionParams += thisFunction.GetParams()
         
         print("THIS IS PARAMS")
         print(functionParams)
         #* Normal body
         #! issue when declare outside function 
-        o_temp = ["env", functionParams + [o[1]]]
+        o_temp = ["env", functionParams + o]
         print(o_temp)
         for i in body:
             if type(i) == VarDecl:
-                o_temp[1].append(self.visit(i, o_temp))
+                item = self.visit(i, o_temp)
+                if item is not None:
+                    o_temp[1].append(item)
         
         for i in body:
+            if type(i) == ReturnStmt:
+                functionReturnType = thisFunction.GetReturnType()
+                returnStmtType = self.visit(i, o_temp[1])
+                
+                #* Void Void
+                if type(functionReturnType) == VoidType and type(returnStmtType) == VoidType:
+                    continue
+
+                elif type(functionReturnType) == AutoType:
+                    thisFunction.ChangeReturnType(returnStmtType)
+                    continue
+
+                #* Check if return type is same
+                elif type(functionReturnType) == type(returnStmtType):
+                    continue
+
+                else:
+                    raise TypeMismatchInStatement(i)
+
             self.visit(i, o_temp[1])
         
 
@@ -489,7 +524,7 @@ class StaticChecker(Visitor):
             return 
 
         #* Call normal statement
-        Tool.CheckArgsInFunction(ctx.name, ctx.args, ctx, o)
+        Tool.CheckArgsInFunction(self, ctx.name, ctx.args, ctx, o)
         return 
     
 
@@ -529,8 +564,6 @@ class StaticChecker(Visitor):
                     dimensionArrayLit = Tool.int_to_str(Tool.flatten(dimensionArrayLit))
 
                     #* ArrayDimension [i,j] = ArrayLitDimension [i,j] 
-                    # print(typeArrayLit.dimensions)
-                    # print(dimensionArrayLit)
                     if typeArrayLit.dimensions != dimensionArrayLit:
                         raise TypeMismatchInVarDecl(ctx)
 
@@ -613,8 +646,10 @@ class StaticChecker(Visitor):
             for param in ctx.params:
                 par, isIhr = self.visit(param, o)
                 if isIhr:
-                    inheritParams.append(par)
-                params.append(par)
+                    if par is not None:
+                        inheritParams.append(par)
+                if par is not None:
+                    params.append(par)
             return FunctionSymbol(ctx.name, ctx.return_type, params, inheritParams)
         else:
             #* Check redeclare
@@ -654,8 +689,9 @@ class StaticChecker(Visitor):
 
         #* Get all declaration
         for decl in ctx.decls:
-            if self.visit(decl, o) is not None:
-                o[1].append(self.visit(decl, o))
+            item = self.visit(decl, o)
+            if item is not None:
+                o[1].append(item)
         o = o[1]
 
         print("------------ROUND1----------------")

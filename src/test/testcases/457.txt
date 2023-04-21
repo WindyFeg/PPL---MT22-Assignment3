@@ -1,0 +1,10 @@
+
+        a: integer;
+        foo : function integer(){
+            a = foo2();
+        }
+
+        foo2: function auto(){
+            return 1.0;
+        }
+        

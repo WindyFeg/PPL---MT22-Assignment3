@@ -451,21 +451,70 @@ class CheckerSuite(unittest.TestCase):
     #     expect = "No entry point"
     #     self.assertTrue(TestChecker.test(input, expect, 452))
 
-    def test_function17(self):
+    # def test_function17(self):
+    #     input = """
+    #     a: integer;
+    #     b: integer = 5;
+    #     foo2: function auto (c: integer, d: integer) inherit foo{
+    #         super(1.0, 2);
+    #         b: float = 5.0;
+    #         a: integer = b;
+    #         c: integer = foo(2.3,4);
+    #     }
+    #     foo : function integer ( a : float, b: integer) {
+    #         a: integer = b;
+    #     }
+    #     """
+    #     expect = "No entry point"
+    #     self.assertTrue(TestChecker.test(input, expect, 453))
+
+    # def test_confuse(self):
+    #     input = """
+    #     a: integer = foo();
+    #     foo : function integer(){
+    #         a = 100;
+    #         return a;
+    #     }
+    #     """
+    #     expect = "No entry point"
+    #     self.assertTrue(TestChecker.test(input, expect, 454))    
+
+    # def test_return(self):
+    #     input = """
+    #     a: integer = foo();
+    #     foo : function integer(){
+    #         a = 100;
+    #         b: string;
+    #         return b;
+    #     }
+    #     """
+    #     expect = "Type mismatch in statement: ReturnStmt(Id(b))"
+    #     self.assertTrue(TestChecker.test(input, expect, 455))   
+
+    # def test_return2(self):
+    #     input = """
+    #     a: integer = foo();
+    #     foo : function auto(){
+    #         a = 100;
+    #         b: string;
+    #         return b;
+    #     }
+    #     """
+    #     expect = "Type mismatch in statement: ReturnStmt(Id(b))"
+    #     self.assertTrue(TestChecker.test(input, expect, 456))   
+
+    def test_return3(self):
         input = """
         a: integer;
-        b: integer = 5;
-        foo2: function auto (c: integer, d: integer) inherit foo{
-            super();
-            b: float = 5.0;
-            a: integer = b;
-            c: integer = foo(2.3,4);
+        foo : function integer(){
+            a = foo2();
         }
-        foo : function integer ( a : float, b: integer) {
-            a: integer = b;
+
+        foo2: function auto(){
+            return 1.0;
         }
         """
-        expect = "No entry point"
-        self.assertTrue(TestChecker.test(input, expect, 453))
+        expect = "Type mismatch in statement: ReturnStmt(FloatLit(1.0))"
+        self.assertTrue(TestChecker.test(input, expect, 457))   
 
     

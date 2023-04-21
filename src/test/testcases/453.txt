@@ -2,7 +2,7 @@
         a: integer;
         b: integer = 5;
         foo2: function auto (c: integer, d: integer) inherit foo{
-            super();
+            super(1.0, 2);
             b: float = 5.0;
             a: integer = b;
             c: integer = foo(2.3,4);
