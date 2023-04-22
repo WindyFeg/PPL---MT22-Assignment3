@@ -1,1 +1,1 @@
-Undeclared Identifier: super
+Invalid statement in function: BlockStmt([VarDecl(a, IntegerType, Id(b))])

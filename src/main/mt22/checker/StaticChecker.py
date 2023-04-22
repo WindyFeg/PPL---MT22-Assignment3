@@ -392,8 +392,10 @@ class StaticChecker(Visitor):
     def visitAssignStmt(self, ctx, o):
         if o[0] == "env": 
             return 
-        lhs = self.visit(ctx.lhs, o)
-        rhs = self.visit(ctx.rhs, o)
+        
+        #! ["check/func",[current], [father]] 
+        lhs = self.visit(ctx.lhs, o[1] + o[2])
+        rhs = self.visit(ctx.rhs, o[1] + o[2])
 
         print("------------ASSIGN-STMT------------")
         print(type(lhs), type(rhs))
@@ -409,7 +411,7 @@ class StaticChecker(Visitor):
             
             #* Check id = functionCall() -> AutoType
             if type(rhs) == AutoType and type(ctx.rhs) == FuncCall:
-                symbol = Tool.FindSymbol(ctx.rhs.name, Function(), o)
+                symbol = Tool.FindSymbol(ctx.rhs.name, Function(), o[1] + o[2])
                 symbol.ChangeReturnType(lhs)
                 return None
 
@@ -453,7 +455,7 @@ class StaticChecker(Visitor):
         print(functionParams)
         #* Normal body
         #! issue when declare outside function 
-        o_temp = ["env", functionParams + o]
+        o_temp = ["env", functionParams, o]
         print(o_temp)
         for i in body:
             if type(i) == VarDecl:
@@ -461,10 +463,12 @@ class StaticChecker(Visitor):
                 if item is not None:
                     o_temp[1].append(item)
         
+        o_temp[0] = "func"
         for i in body:
+
             if type(i) == ReturnStmt:
                 functionReturnType = thisFunction.GetReturnType()
-                returnStmtType = self.visit(i, o_temp[1])
+                returnStmtType = self.visit(i, o_temp[1] + o_temp[2])
                 
                 #* Void Void
                 if type(functionReturnType) == VoidType and type(returnStmtType) == VoidType:
@@ -481,7 +485,7 @@ class StaticChecker(Visitor):
                 else:
                     raise TypeMismatchInStatement(i)
 
-            self.visit(i, o_temp[1])
+            self.visit(i, o_temp)
         
 
     #%IfStmt: #cond: Expr, 
@@ -534,15 +538,19 @@ class StaticChecker(Visitor):
         if o[0] == "env":
             return Symbol(ctx.name, self.visit(ctx.typ, o))
         else:
-            Tool.CheckRedeclare(self, ctx.name, Variable(), o)
-            symbol = Tool.FindSymbol(ctx.name, Identifier(), o)
+            #!Check on current scope then check on father scope
+            #! ["env",[current], [father]] 
+            #! redeclare only check current, find symbol check current then father
+            #! o = ["check", [current], [father]] 
+            Tool.CheckRedeclare(self, ctx.name, Variable(), o[1])
+            symbol = Tool.FindSymbol(ctx.name, Identifier(), o[1] + o[2])
 
             #* Initialize case
             if ctx.init:
                 try:
-                    dimensionArrayLit, typeInit = self.visit(ctx.init,o)
+                    dimensionArrayLit, typeInit = self.visit(ctx.init,o[1] + o[2])
                 except:
-                    typeInit = self.visit(ctx.init,o)
+                    typeInit = self.visit(ctx.init,o[1] + o[2])
 
                 print("-------------VAR-DECLARE----------------")
                 print(ctx)
@@ -585,7 +593,7 @@ class StaticChecker(Visitor):
                 #* RightType = AutoType
                 if type(typeInit) == AutoType:
                     if type(ctx.init) == FuncCall:
-                        functionCall = Tool.FindSymbol(ctx.init.name, Identifier(), o)
+                        functionCall = Tool.FindSymbol(ctx.init.name, Identifier(), o[1] + o[2])
                         functionCall.ChangeReturnType(ctx.typ)
                     else:
                         symbol.ChangeType(ctx.typ)
@@ -652,18 +660,19 @@ class StaticChecker(Visitor):
                     params.append(par)
             return FunctionSymbol(ctx.name, ctx.return_type, params, inheritParams)
         else:
+            #! ["check",[current], [father]] 
             #* Check redeclare
-            Tool.CheckRedeclare(self, ctx.name, Function(), o)
+            Tool.CheckRedeclare(self, ctx.name, Function(), o[1])
 
             #* Check redeclare in params
-            thisFunction = Tool.FindSymbol(ctx.name, Function(), o)
+            thisFunction = Tool.FindSymbol(ctx.name, Function(), o[1])
             functionParams = thisFunction.GetParams()
             for param in ctx.params:
                 Tool.CheckRedeclare(self, param.name, Parameter(), functionParams)
 
             #* Check inherit 
             if ctx.inherit:
-                inheritFunction = Tool.FindSymbol(ctx.inherit, Function(), o)
+                inheritFunction = Tool.FindSymbol(ctx.inherit, Function(), o[1])
 
                 #* Check if Child has params like Father inherit params
                 for param in functionParams:
@@ -672,11 +681,11 @@ class StaticChecker(Visitor):
                 #* Father inherit params + Son params
                 inheritFunctionParams_FunctionParams = inheritFunction.GetInheritParams() + functionParams
                 
-                self.visit(ctx.body, o + [ctx.inherit,ctx.name])
+                self.visit(ctx.body, o[1] + [ctx.inherit,ctx.name])
                 return None
             else:
                 
-                self.visit(ctx.body, o + [None, ctx.name])
+                self.visit(ctx.body, o[1] + [None, ctx.name])
                 return None
             
 
@@ -685,15 +694,17 @@ class StaticChecker(Visitor):
     #% program: #decls: List[Decl] 
     #$ o = [Symbol(name, mtype),...]
     def visitProgram(self, ctx:Program, o):
-        o = ["env", []]
+        o = ["env", [], []]
 
         #* Get all declaration
         for decl in ctx.decls:
             item = self.visit(decl, o)
             if item is not None:
                 o[1].append(item)
-        o = o[1]
+        
+        #* [CurrentScope, FatherScope]
 
+        o[0] = "check"
         print("------------ROUND1----------------")
         for i in o:
             print(repr(i))

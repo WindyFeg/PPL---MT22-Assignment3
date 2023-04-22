@@ -1,0 +1,8 @@
+
+        a: integer;
+        foo : function integer(){
+            a: float;
+            a: integer;
+        }
+
+        
