@@ -610,6 +610,7 @@ class StaticChecker(Visitor):
         if ctx.name == "preventDefault":
             return 
         
+        #! FIX THIS
         #* super
         #$ [Symbol, "inheritFunctionName"]
         if ctx.name == "super" and type(o[len(o)-1]) == type(""):
@@ -772,7 +773,7 @@ class StaticChecker(Visitor):
                 #* Father inherit params + Son params
                 inheritFunctionParams_FunctionParams = inheritFunction.GetInheritParams() + functionParams
                 
-                self.visit(ctx.body, o + [ctx.inherit,ctx.name])
+                self.visit(ctx.body, o + [[ctx.inherit,ctx.name]])
                 return None
             else:
                 

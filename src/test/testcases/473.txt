@@ -1,0 +1,16 @@
+
+        x: boolean;
+        foo: function void(){ }
+        main: function auto(out z: auto){
+            a: integer;
+            i,j : integer = 0, 10;
+            while (j>0){
+                    i=i+1;
+                    j = j + 2;
+                    a = i + j; 
+                    break;
+                    b = i + j;
+            }
+        }
+
+        
