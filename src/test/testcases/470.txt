@@ -1,0 +1,12 @@
+
+        a: integer;
+        foo : function auto(){
+            while(a<10){
+                a = a + 1;
+                break;
+                return a;
+            }
+            a = a + 1;
+            
+        }
+        

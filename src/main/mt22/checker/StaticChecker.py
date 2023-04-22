@@ -390,7 +390,7 @@ class StaticChecker(Visitor):
     #$ STATEMENT 
     #%AssignStmt: lhs: LHS, rhs: Expr
     def visitAssignStmt(self, ctx, o):
-        if o[0] == "env": 
+        if o[0] == "envi": 
             return 
         
         #! ["check/func",[current], [father]] 
@@ -419,29 +419,34 @@ class StaticChecker(Visitor):
 
     #% BlockStmt: #body: List[Stmt or VarDecl]
     def visitBlockStmt(self, ctx:BlockStmt, o):
+        #$ ["typeOfChecker", [current], [father], [function]]
         functionParams = []
         body = ctx.body
+        TypeOfchecker = "none"
         
+        #* For Body
+        if  "loop" in o[0]:
+            TypeOfchecker = o[0]
+
         #* Function Body
-        if type(o[len(o)-1]) == type(""):
-            
-            #$ [Symbol, "inheritFunctionName", "thisFunctionName" ]
-            thisFunctionName = o.pop()
-            #$ [Symbol, "inheritFunctionName"]
-            inheritFunctionName = o.pop()
+        if len(o) == 4:
+            TypeOfchecker = "func" if o[0] == "func" else TypeOfchecker
+            #$ o[3] = ["inheritFunctionName", "thisFunctionName" ]
+            inheritFunctionName = o[3][0]
+            thisFunctionName = o[3][1]
 
             #* Get all params of function
-            thisFunction = Tool.FindSymbol(thisFunctionName, Identifier(), o)
+            thisFunction = Tool.FindSymbol(thisFunctionName, Identifier(), o[1] + o[2])
 
             #* Get all params of inherit function 
             if inheritFunctionName is not None:
-                inheritFunction = Tool.FindSymbol(inheritFunctionName, Identifier(), o)
+                inheritFunction = Tool.FindSymbol(inheritFunctionName, Identifier(), o[1] + o[2])
                 functionParams = inheritFunction.GetInheritParams() 
 
                 #* Check super and PreventDefault
                 if body[0].name == "super":
                     body[0].name = inheritFunction.GetName()
-                    self.visit(body[0], o + [inheritFunction.GetName()])
+                    self.visit(body[0], o[1] + o[2] + [inheritFunction.GetName()])
                     body = body[1:]
                 elif body[0].name == "preventDefault":
                     body = body[1:]
@@ -455,7 +460,7 @@ class StaticChecker(Visitor):
         print(functionParams)
         #* Normal body
         #! issue when declare outside function 
-        o_temp = ["env", functionParams, o]
+        o_temp = ["envi", functionParams, o[1] + o[2], o[3]]
         print(o_temp)
         for i in body:
             if type(i) == VarDecl:
@@ -463,7 +468,7 @@ class StaticChecker(Visitor):
                 if item is not None:
                     o_temp[1].append(item)
         
-        o_temp[0] = "func"
+        o_temp[0] = TypeOfchecker
         for i in body:
 
             if type(i) == ReturnStmt:
@@ -486,6 +491,9 @@ class StaticChecker(Visitor):
                     raise TypeMismatchInStatement(i)
 
             self.visit(i, o_temp)
+
+        #$ ["typeOfChecker", [current], [father]]
+        o.pop()
         
 
     #%IfStmt: #cond: Expr, 
@@ -497,19 +505,101 @@ class StaticChecker(Visitor):
     #% cond: Expr, 
     #% upd: Expr, 
     #% stmt: Stmt
-    def visitForStmt(self, ctx, o): pass
+    def visitForStmt(self, ctx, o): 
+        typeOfChecker = o[0]
+        if typeOfChecker == "envi":
+            return
+        
+        #* Check init
+        typeOfScalar = self.visit(ctx.init.lhs, o[1] + o[2])
+        if type(typeOfScalar) != IntegerType:
+            raise TypeMismatchInStatement(ctx.init)
+        #* Check AssignStmt
+        self.visit(ctx.init, o)
+
+        #* Check cond
+        typeOfCond = self.visit(ctx.cond, o[1] + o[2])
+        if type(typeOfCond) != BooleanType:
+            raise TypeMismatchInStatement(ctx.cond)
+        
+        #* Check upd
+        typeOfUpd = self.visit(ctx.upd, o[1] + o[2])
+        if type(typeOfUpd) != IntegerType:
+            raise TypeMismatchInStatement(ctx.upd)
+
+        
+        if typeOfChecker in ["chec", "func"]:
+            o[0] = "loop"
+        else:
+            #* Loop in loop
+            o[0] = o[0] + "loop"
+
+
+        #* Check stmt
+        self.visit(ctx.stmt, o)
+
+        #* End loop
+        o[0] = typeOfChecker
+
+
 
     #% WhileStmt: #cond: Expr, stmt: Stmt 
-    def visitWhileStmt(self, ctx, o): pass
+    def visitWhileStmt(self, ctx, o): 
+        typeOfChecker = o[0]
+        if typeOfChecker == "envi":
+            return
+        
+        #* Check cond
+        typeOfCond = self.visit(ctx.cond, o[1] + o[2])
+        if type(typeOfCond) != BooleanType:
+            raise TypeMismatchInStatement(ctx.cond)
+
+        if typeOfChecker in ["chec", "func"]:
+            o[0] = "loop"
+        else:
+            #* Loop in loop
+            o[0] = o[0] + "loop"
+
+        #* Check stmt
+        self.visit(ctx.stmt, o)
+
+        #* End loop
+        o[0] = typeOfChecker
 
     #% DowhileStmt: #cond: Expr, stmt: BlockStmt
-    def visitDoWhileStmt(self, ctx, o): pass
+    def visitDoWhileStmt(self, ctx, o): 
+        typeOfChecker = o[0]
+        if typeOfChecker == "envi":
+            return
+        
+        if typeOfChecker in ["chec", "func"]:
+            o[0] = "loop"
+        else:
+            #* Loop in loop
+            o[0] = o[0] + "loop"
+
+        #* Check blockStmt
+        self.visit(ctx.stmt, o)
+
+        #* Check cond
+        typeOfCond = self.visit(ctx.cond, o[1] + o[2])
+        if type(typeOfCond) != BooleanType:
+            raise TypeMismatchInStatement(ctx.cond)
+
+        #* End loop
+        o[0] = typeOfChecker
 
     def visitBreakStmt(self, ctx:BreakStmt, o): 
-        return BreakStmt()
+        typeOfChecker = o[0]
+        if typeOfChecker in  ["chec", "func"]:
+            raise MustInLoop(ctx)
+        return None
     
     def visitContinueStmt(self, ctx:ContinueStmt, o): 
-        return ContinueStmt()
+        typeOfChecker = o[0]
+        if typeOfChecker in ["chec", "func"]:
+            raise MustInLoop(ctx)
+        return None
 
     #% ReturnStmt: expr: Expr
     def visitReturnStmt(self, ctx: ReturnStmt, o):
@@ -535,13 +625,13 @@ class StaticChecker(Visitor):
     #$ DECLARE
     #% Vardecl: #name: str, typ: Type, init: Expr or None = None)
     def visitVarDecl(self, ctx:VarDecl, o): 
-        if o[0] == "env":
+        if o[0] == "envi":
             return Symbol(ctx.name, self.visit(ctx.typ, o))
         else:
             #!Check on current scope then check on father scope
-            #! ["env",[current], [father]] 
+            #! ["envi",[current], [father]] 
             #! redeclare only check current, find symbol check current then father
-            #! o = ["check", [current], [father]] 
+            #! o = ["chec", [current], [father]] 
             Tool.CheckRedeclare(self, ctx.name, Variable(), o[1])
             symbol = Tool.FindSymbol(ctx.name, Identifier(), o[1] + o[2])
 
@@ -631,7 +721,7 @@ class StaticChecker(Visitor):
     #% out: bool = False, 
     #% inherit: bool = False
     def visitParamDecl(self, ctx, o): 
-        if o[0] == "env":
+        if o[0] == "envi":
             if ctx.inherit:
                 return Symbol(ctx.name, ctx.typ), True
             return Symbol(ctx.name, ctx.typ), False
@@ -649,7 +739,7 @@ class StaticChecker(Visitor):
     #% body: BlockStmt
     #* name: function <return-type> (<parameter-list>) [inherit <function-name>]?
     def visitFuncDecl(self, ctx, o):
-        if o[0] == "env":
+        if o[0] == "envi":
             inheritParams, params = [], []
             for param in ctx.params:
                 par, isIhr = self.visit(param, o)
@@ -660,7 +750,8 @@ class StaticChecker(Visitor):
                     params.append(par)
             return FunctionSymbol(ctx.name, ctx.return_type, params, inheritParams)
         else:
-            #! ["check",[current], [father]] 
+            o[0] = "func"
+            #! ["func",[current], [father]] 
             #* Check redeclare
             Tool.CheckRedeclare(self, ctx.name, Function(), o[1])
 
@@ -681,20 +772,21 @@ class StaticChecker(Visitor):
                 #* Father inherit params + Son params
                 inheritFunctionParams_FunctionParams = inheritFunction.GetInheritParams() + functionParams
                 
-                self.visit(ctx.body, o[1] + [ctx.inherit,ctx.name])
+                self.visit(ctx.body, o + [ctx.inherit,ctx.name])
                 return None
             else:
                 
-                self.visit(ctx.body, o[1] + [None, ctx.name])
+                self.visit(ctx.body, o + [[None, ctx.name]])
                 return None
             
+            o[0] = "chec"
 
 
     #$ PROGRAM 
     #% program: #decls: List[Decl] 
     #$ o = [Symbol(name, mtype),...]
     def visitProgram(self, ctx:Program, o):
-        o = ["env", [], []]
+        o = ["envi", [], []]
 
         #* Get all declaration
         for decl in ctx.decls:
@@ -704,7 +796,7 @@ class StaticChecker(Visitor):
         
         #* [CurrentScope, FatherScope]
 
-        o[0] = "check"
+        o[0] = "chec"
         print("------------ROUND1----------------")
         for i in o:
             print(repr(i))

@@ -1,0 +1,13 @@
+
+        a: integer;
+        foo : function integer(){
+            a: float;
+            i: integer;
+            for (i = 0, i < 10, i + 1){
+                a: integer;
+                break;
+            }
+            a = a + 1;
+        }
+
+        

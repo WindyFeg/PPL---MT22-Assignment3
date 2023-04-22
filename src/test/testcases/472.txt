@@ -1,0 +1,10 @@
+
+        a: integer;
+        foo : function auto(){
+            while(a<10){
+                break;
+                return a;
+            }
+         return 1.0;   
+        }
+        

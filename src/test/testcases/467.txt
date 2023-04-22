@@ -1,0 +1,11 @@
+
+        a: integer;
+        foo : function integer(){
+            while(a<10){
+                a = a + 1;
+                continue;
+            }
+            
+        }
+
+        
