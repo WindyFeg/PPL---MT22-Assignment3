@@ -1,0 +1,8 @@
+foo : integer = 1;
+            foo: function auto () {
+            }
+            main: function void() {
+                foo();
+                foo : integer = 1;
+            }
+        

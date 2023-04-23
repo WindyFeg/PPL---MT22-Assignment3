@@ -1,0 +1,4 @@
+foo : array [1,2] of integer = {};
+            main: function void() {
+        }
+        

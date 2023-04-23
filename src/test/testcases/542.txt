@@ -1,0 +1,6 @@
+b : integer;
+        a : array[3] of integer;
+        main: function void (){
+            a[1] = 1;
+        }
+        

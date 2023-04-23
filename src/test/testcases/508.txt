@@ -1,0 +1,7 @@
+b : array [1, 2] of integer = {{1, 2}};
+        foo : function integer (a : integer){
+        }
+        main: function void (){
+            a : integer = foo(true) + 1;
+        }
+        

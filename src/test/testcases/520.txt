@@ -1,0 +1,9 @@
+b : array [3, 2] of integer = {{1,2},{1,2},{1,2}};
+        foo1 : function void (a : integer){}
+        foo : function integer (a : integer) inherit foo1 {
+            preventDefault();
+            b : integer;
+        }
+        main: function void (){
+        }
+        

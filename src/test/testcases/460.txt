@@ -1,16 +1,12 @@
-
-        x: boolean;
-        foo: function void(){ }
-        main: function auto(out i: auto){
-            a: integer;
-            i,j : integer = 0, 10;
-            while (j>0){
-                    i=i+1;
-                    j = j + 2;
-                    a = i + j; 
-                    break;
-                    b = i + j;
-            }
+b:integer;
+        foo1 : function float (a : integer){
+            a = 1;
         }
-
+        main: function void (){
+            a : integer;
+            foo();
+        }
+        foo : function integer (){
+            a : integer;
+        }
         

@@ -1,5 +1,6 @@
 
-        foo: integer = foo2(1.0,2);
+        foo: integer = foo2(1,2);
         foo2 : function integer (c: integer, d: float) {
+            return;
         }
         

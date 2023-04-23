@@ -1,0 +1,6 @@
+b : array [2, 2] of integer = { {1, 1}, {2,3} };
+        main: function void (){
+            b : integer = b[1,2] + 2 + 3;
+            if (b == 1) return "lol";
+        }
+        

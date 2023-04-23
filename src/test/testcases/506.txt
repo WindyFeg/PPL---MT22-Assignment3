@@ -1,0 +1,7 @@
+b : array [1, 2] of integer = {{1, 2}};
+        foo : function void (){
+            super();
+        }
+        main: function void (){
+        }
+        

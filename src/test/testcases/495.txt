@@ -1,0 +1,11 @@
+b : array [1, 2] of integer = {{1, 1}};
+        foo: function void(){
+            a : integer;
+        }
+        foo1: function void(){
+        }
+        main: function void (){
+            b : integer = b[1,2] + 2 + 3;
+            return;
+        }
+        

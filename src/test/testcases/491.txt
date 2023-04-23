@@ -1,0 +1,5 @@
+b : array [1, 2] of integer = {{1, 1}};
+        main: function void (){
+            b : integer = b[1+1, 1] + 2 + 3;
+        }
+        

@@ -1,0 +1,11 @@
+b : integer;
+        foo1 : function void (inherit a : integer){
+            b = 1;
+        }
+        foo : function integer (b : integer) inherit foo1{
+            super(1);
+        }
+        main: function void (){
+            b = 1;
+        }
+        
