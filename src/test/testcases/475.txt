@@ -1,0 +1,8 @@
+
+        foo();
+        foo : function auto(){
+            a = a + 1;
+            return;
+        }
+
+        

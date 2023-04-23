@@ -1,0 +1,13 @@
+
+        foo: function auto() inherit foo2{
+            super();
+            foo2();
+            i: integer = 23;
+            return a;
+        }
+
+        foo2: function auto(){
+                a: integer;
+                return a;
+        }
+        

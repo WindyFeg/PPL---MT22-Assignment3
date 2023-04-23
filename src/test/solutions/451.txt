@@ -1,1 +1,1 @@
-Invalid statement in function: BlockStmt([VarDecl(a, IntegerType)])
+Invalid statement in function: foo

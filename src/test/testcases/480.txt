@@ -1,0 +1,13 @@
+
+        a: integer;
+        foo : function auto(){
+            if (a<10){
+                a = a + 1;
+                return a;
+            }else{
+                a = a + 1;
+                return true;
+            }
+            
+        }
+        

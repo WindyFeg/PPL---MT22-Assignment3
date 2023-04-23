@@ -1,0 +1,10 @@
+
+        foo: function auto() inherit foo2{
+            preventDefault();
+            return a;
+        }
+
+        foo2: function auto(inherit a: integer){
+        
+        }
+        

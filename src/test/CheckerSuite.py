@@ -113,7 +113,7 @@ a: float = b;"""
 d : auto;
 e : auto = 1 + d;
         """
-        expect = """Invalid Variable: VarDecl(d, AutoType)"""
+        expect = """Invalid Variable: d"""
         self.assertTrue(TestChecker.test(input,expect,414))
 
     def test_bin_expr8(self):
@@ -436,7 +436,7 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
         foo : function integer ( a : float, b: integer) {
         }
         """
-        expect = "Invalid statement in function: BlockStmt([VarDecl(a, IntegerType)])"
+        expect = "Invalid statement in function: foo"
         self.assertTrue(TestChecker.test(input, expect, 451))
 
     def test_function16(self):
@@ -449,7 +449,7 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
         foo : function integer ( a : float, b: integer) {
         }
         """
-        expect = "Invalid statement in function: BlockStmt([VarDecl(a, IntegerType, Id(b))])"
+        expect = "Invalid statement in function: foo"
         self.assertTrue(TestChecker.test(input, expect, 452))
 
     def test_function17(self):
@@ -466,7 +466,7 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
             a: integer = b;
         }
         """
-        expect = "Type mismatch in Variable Declaration: VarDecl(a, IntegerType, Id(b))"
+        expect = "Type mismatch in statement: CallStmt(foo, FloatLit(1.0), IntegerLit(2))"
         self.assertTrue(TestChecker.test(input, expect, 453))
 
     def test_confuse(self):
@@ -775,3 +775,234 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
         """
         expect = "Undeclared Identifier: b"
         self.assertTrue(TestChecker.test(input, expect, 473))
+
+    def test_declare_in_function4(self):
+        input = """
+        a: integer;
+                    foo : function auto(){
+                    while(a<10){
+                        a = a + 1;
+                        break;
+                        return a;
+                    }
+                        a = a + 1;
+                    return "hello";   
+                    }
+
+        """
+        expect = "Type mismatch in statement: ReturnStmt(StringLit(hello))"
+        self.assertTrue(TestChecker.test(input, expect, 474))
+
+    def test_void(self):
+        input = """
+        foo();
+        foo : function auto(){
+            a = a + 1;
+            return;
+        }
+
+        """
+        expect = "Undeclared Identifier: a"
+        self.assertTrue(TestChecker.test(input, expect, 475))
+
+    def test_void2(self):
+        input = """
+        foo();
+        foo : function auto(){
+            a: auto = "ase";
+            return;
+        }
+
+        """
+        expect = "No entry point"
+        self.assertTrue(TestChecker.test(input, expect, 476))
+
+    def test_void3(self):
+        input = """
+        foo();
+        foo : function string(){
+            a: auto = "ase";
+            return a;
+        }
+        """
+        expect = "Type mismatch in statement: CallStmt(foo, )"
+        self.assertTrue(TestChecker.test(input, expect, 477))
+
+    def test_if(self):
+        input = """
+        foo();
+        a: integer;
+        foo : function auto(){
+            if (a<10){
+                a = a + 1;
+                return a;
+            }
+        }
+        """
+        expect = "Type mismatch in statement: ReturnStmt(Id(a))"
+        self.assertTrue(TestChecker.test(input, expect, 478))
+
+    def test_if2(self):
+        input = """
+        a: integer;
+        foo : function auto(){
+            if (a<10){
+                a = a + 1;
+                return a;
+            }
+            
+        }
+        """
+        expect = "No entry point"
+        self.assertTrue(TestChecker.test(input, expect, 479))
+
+    def test_if3(self):
+        input = """
+        a: integer;
+        foo : function auto(){
+            if (a<10){
+                a = a + 1;
+                return a;
+            }else{
+                a = a + 1;
+                return true;
+            }
+            
+        }
+        """
+        expect = "Type mismatch in statement: ReturnStmt(BooleanLit(True))"
+        self.assertTrue(TestChecker.test(input, expect, 480))
+
+    def test_if4(self):
+        input = """
+        a: integer;
+        foo : function auto(){
+            if (a<10){
+                a = a + 1;
+                return a;
+            }else{
+                a = a + 1;
+                if (a>10){
+                    return 1;
+                }
+                else{
+                    return true;
+                }
+            }
+            
+        }
+        """
+        expect = "Type mismatch in statement: ReturnStmt(BooleanLit(True))"
+        self.assertTrue(TestChecker.test(input, expect, 481))
+    
+    def test_dowhile(self):
+        input = """
+        a: integer;
+        foo : function auto(){
+            do{
+                a = a + 1;
+                return a;
+            }while(a<10);
+            
+        }
+        """
+        expect = "No entry point"
+        self.assertTrue(TestChecker.test(input, expect, 482))
+    
+    def test_dowhile2(self):
+        input = """
+        a: integer;
+        foo : function auto(){
+            do{
+                a = a + 1;
+                return a;
+                for(i = 1, i<10, i+1){
+                    if (i>10){
+                        return 1;}
+                    else{
+                        return true;
+                    }
+                }
+            }while(a<10);
+            return true;
+        }
+        """
+        expect = "Undeclared Identifier: i"
+        self.assertTrue(TestChecker.test(input, expect, 483))
+
+    def test_inheritfunc(self):
+        input = """
+        foo: function auto() inherit foo2{
+            preventDefault();
+            return a;
+        }
+
+        foo2: function auto(inherit a: integer){
+        
+        }
+        """
+        expect = "No entry point"
+        self.assertTrue(TestChecker.test(input, expect, 484))
+
+    def test_inheritfunc2(self):
+        input = """
+        foo: function auto() inherit foo2{
+            
+            return a;
+        }
+
+        foo2: function auto(){
+                a: integer;
+                return a;
+        }
+        """
+        expect = "Invalid statement in function: foo2"
+        self.assertTrue(TestChecker.test(input, expect, 485))
+
+    def test_inheritfunc3(self):
+        input = """
+        foo: function auto() inherit foo2{
+            i: integer = 23;
+            return a;
+        }
+
+        foo2: function auto(){
+                a: integer;
+                return a;
+        }
+        """
+        expect = "Invalid statement in function: foo2"
+        self.assertTrue(TestChecker.test(input, expect, 486))
+
+    def test_inheritfunc4(self):
+        input = """
+        foo: function auto() inherit foo2{
+            foo2();
+            i: integer = 23;
+            return a;
+        }
+
+        foo2: function auto(){
+                a: integer;
+                return a;
+        }
+        """
+        expect = "Invalid statement in function: foo2"
+        self.assertTrue(TestChecker.test(input, expect, 487))
+
+    def test_inheritfunc5(self):
+        input = """
+        foo: function auto() inherit foo2{
+            super();
+            foo2();
+            i: integer = 23;
+            return a;
+        }
+
+        foo2: function auto(){
+                a: integer;
+                return a;
+        }
+        """
+        expect = "Undeclared Identifier: a"
+        self.assertTrue(TestChecker.test(input, expect, 488))

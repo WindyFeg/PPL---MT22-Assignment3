@@ -1,0 +1,11 @@
+
+        foo: function auto() inherit foo2{
+            
+            return a;
+        }
+
+        foo2: function auto(){
+                a: integer;
+                return a;
+        }
+        

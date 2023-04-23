@@ -1,0 +1,17 @@
+
+        a: integer;
+        foo : function auto(){
+            do{
+                a = a + 1;
+                return a;
+                for(i = 1, i<10, i+1){
+                    if (i>10){
+                        return 1;}
+                    else{
+                        return true;
+                    }
+                }
+            }while(a<10);
+            return true;
+        }
+        

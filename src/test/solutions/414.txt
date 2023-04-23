@@ -1,1 +1,1 @@
-Invalid Variable: VarDecl(d, AutoType)
+Invalid Variable: d
