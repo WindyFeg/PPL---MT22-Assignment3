@@ -1,0 +1,1 @@
+Type mismatch in statement: CallStmt(preventDefault, IntegerLit(1))

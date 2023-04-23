@@ -1,1 +1,1 @@
-No entry point
+Type mismatch in expression: FloatLit(2.5)

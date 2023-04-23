@@ -1,6 +1,6 @@
-b : array [1, 3] of integer = {{1, 2, 3}};
+b : array [1, 3] of integer = { {1, 2, 3} };
         main: function void (){
-            b : integer = b[1,2] + 2 + 3;
+            a : integer = b[1,2] + 2 + 3;
             if (b == 1) return;
             else return;
         }

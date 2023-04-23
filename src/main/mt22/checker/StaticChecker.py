@@ -149,7 +149,7 @@ class Tool:
             raise Undeclared(Function(), func.GetName())
         
         if len(func.GetParams()) != len(args):
-            raise TypeMismatchInExpression(ctx)
+            raise TypeMismatchInStatement(ctx)
         
         for i in range(len(args)):
             arg = self.visit(args[i], [1] + o[2])
@@ -287,7 +287,7 @@ class StaticChecker(Visitor):
                 raise TypeMismatchInExpression(ctx)
         
         if op in ['==', '!=']:
-            if typeLeft == typeRight and typeLeft in [IntegerType, BooleanType]:
+            if typeRight in [IntegerType, BooleanType] and typeLeft in [IntegerType, BooleanType]:
                 return BooleanType()
             
             #* Auto type
@@ -421,9 +421,18 @@ class StaticChecker(Visitor):
                 return None
             
             #* Check id = functionCall() -> AutoType
-            if type(rhs) == AutoType and type(ctx.rhs) == FuncCall:
+            if type(rhs) == AutoType and type(ctx.rhs) != VoidType:
                 symbol = Tool.FindSymbol(ctx.rhs.name, Function(), o[1] + o[2])
-                symbol.ChangeReturnType(lhs)
+                if type(ctx.rhs) == FuncCall:
+                    symbol.ChangeReturnType(lhs)
+                else:
+                    symbol.ChangeType(lhs)
+                return None
+            
+            #* Check id  -> AutoType = functionCall() 
+            if type(lhs) == AutoType and type(ctx.rhs) != VoidType:
+                symbol = Tool.FindSymbol(ctx.lhs.name, Identifier(), o[1] + o[2])
+                symbol.ChangeType(rhs)
                 return None
 
             raise TypeMismatchInStatement(ctx)
@@ -465,6 +474,8 @@ class StaticChecker(Visitor):
                     self.visit(body[0], o + [inheritFunction.GetName()])
                     body = body[1:]
                 elif body[0].name == "preventDefault":
+                    if body[0].args != []:
+                        raise TypeMismatchInStatement(body[0]) 
                     body = body[1:]
                 else:
                     #* Add super()
@@ -501,6 +512,10 @@ class StaticChecker(Visitor):
                     thisFunction.ChangeReturnType(returnStmtType)
                     continue
 
+                #* FloatType = IntegerType
+                elif type(functionReturnType) == FloatType and type(returnStmtType) == IntegerType:
+                    continue
+                
                 #* Check if return type is same
                 elif type(functionReturnType) == type(returnStmtType):
                     continue
@@ -682,6 +697,7 @@ class StaticChecker(Visitor):
         thisFunction = Tool.FindSymbol(ctx.name, Identifier(), o[1] + o[2])
         if type(thisFunction.GetReturnType()) == AutoType:
             thisFunction.ChangeReturnType(VoidType())
+
         # elif type(thisFunction.GetReturnType()) != VoidType:
         #     raise TypeMismatchInStatement(ctx)
 
@@ -882,6 +898,5 @@ class StaticChecker(Visitor):
                 hasMain = True
         if hasMain == False:
             raise NoEntryPoint()
-        return []
 
         

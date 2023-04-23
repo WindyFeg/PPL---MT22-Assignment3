@@ -1,1 +1,1 @@
-[]
+Illegal array literal: ArrayLit([BooleanLit(True), IntegerLit(1)])

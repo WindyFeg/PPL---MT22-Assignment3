@@ -145,7 +145,7 @@ d : auto = a == b;
         expect = "No entry point"
         self.assertTrue(TestChecker.test(input, expect, 418))
 
-    def test_array_decl3(self):
+    def test_array_decls(self):
         input = """
         a: array [1,2] of boolean = {true, 1};
         """
@@ -206,9 +206,14 @@ d : auto = a == b;
         input = """
         a: string;
         b: auto = a;
-        b = "aloha";
+        doo: function auto(a: auto, d: auto){
+            c: integer;
+            a = c;
+            c = d;
+            a = doo(2.5,true);
+        }
         """
-        expect = "No entry point"
+        expect = "Type mismatch in expression: FloatLit(2.5)"
         self.assertTrue(TestChecker.test(input, expect, 426))
 
     def test_assign_stmt(self):
@@ -543,7 +548,7 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
         expect = "Redeclared Variable: a"
         self.assertTrue(TestChecker.test(input, expect, 459)) 
     
-    def test_declare_in_function3(self):
+    def test_declare_in_function_3(self):
         input = """
         x: boolean;
         foo: function void(){ }
@@ -1019,3 +1024,150 @@ a: array [2,2] of auto = { {1,2}, {1, true} };
         """
         expect = "Type mismatch in statement: ReturnStmt(StringLit(lol))"
         self.assertTrue(TestChecker.test(input, expect, 489))
+        
+    def test_return_1(self):
+        input = """
+        x: boolean;
+        foo: function integer(a: integer, b: float){
+        
+        }
+        main: function float(out i: auto){
+            i = foo(1,2);
+            return 2;
+            return 2.0;
+            return "hello";
+        }
+                """
+        expect = "Type mismatch in statement: ReturnStmt(StringLit(hello))"
+        self.assertTrue(TestChecker.test(input, expect, 490))
+
+    def test_return_2(self):
+        input = """
+            a: integer;
+            foo : function auto(){
+            while(a<10){
+                a = a + 1;
+                break;
+                return a;
+            }
+                a = a + 1;
+            return "hello";   
+            }
+                """
+        expect = "Type mismatch in statement: ReturnStmt(StringLit(hello))"
+        self.assertTrue(TestChecker.test(input, expect, 491))
+
+
+    def test_redeclare_parameter(self):
+
+        input = """ 
+        b: function void(a: integer, b: float, a: auto){
+        
+        }
+        a: function auto(out i: auto){
+        break;
+        for(i = 7, i + 4, i + 0){}
+        }
+                """
+        expect = "Redeclared Parameter: a"
+        self.assertTrue(TestChecker.test(input, expect, 492))
+
+    def test_long_vardecl3(self):
+        input = """x, y, z: integer = 1,2,3;
+                   a: boolean = 2 == 1;
+                   b: integer = a != 1;"""
+        expect = "Type mismatch in Variable Declaration: VarDecl(b, IntegerType, BinExpr(!=, Id(a), IntegerLit(1)))"
+        self.assertTrue(TestChecker.test(input, expect, 493))
+    
+    def test_long_vardecl4(self):
+        input = """x, y, z: integer = 1,2,3;
+                   a: boolean = 2 == 1;
+                   b: auto = a;
+                   c: integer = b;"""
+        expect = "Type mismatch in Variable Declaration: VarDecl(c, IntegerType, Id(b))"
+        self.assertTrue(TestChecker.test(input, expect, 494))
+    
+    def test_callstmt_0(self):
+
+        input = """
+        a: integer;
+        foo : function auto(inherit a: integer) inherit foo2{
+            preventDefault(1);
+            a: integer = 1;
+        }
+        foo2: function void(a: integer, b: float){}
+        foo3: function void(){}
+                """
+        expect = "Type mismatch in statement: CallStmt(preventDefault, IntegerLit(1))"
+        self.assertTrue(TestChecker.test(input, expect, 495))
+    
+    def test_callstmt_1(self):
+
+        input = """
+                    a: integer;
+                    foo : function auto( a: integer) inherit foo2{
+                        preventDefault(1);
+                        a: integer = 1;
+                    }
+                    foo2: function void(inherit a: integer, b: float){}
+                    foo3: function void(){}
+                """
+        expect = "Invalid Parameter: a"
+        self.assertTrue(TestChecker.test(input, expect, 496))
+
+    def test_normal(self):
+        input = """b:integer;
+        foo1 : function float (a : integer){
+            a = 1;
+        }
+        main: function void (){
+            a : integer;
+            foo1();
+        }
+        foo : function integer (){
+            a : integer;
+        }
+        """
+        expect = "Type mismatch in statement: CallStmt(foo1, )"
+        self.assertTrue(TestChecker.test(input, expect, 497))
+
+    def test_normal2(self):
+        input = """b : integer;
+        foo1 : function void (inherit a : integer){
+            b = 1;
+        }
+        foo : function integer (a : integer) inherit foo1{
+            super(1);
+        }
+        main: function void (){
+            b = 1;
+        }
+        """
+        expect = "Invalid Parameter: a"
+        self.assertTrue(TestChecker.test(input, expect, 498))
+
+    def test_normal3(self):
+        input = """
+                    x: boolean;
+                    foo: function integer(a: integer, b: float){
+                    
+                    }
+                    main: function auto(out i: auto){
+                        i = foo(1,2) + 3.3;
+                        if (i == 1) return;
+                        return;
+                    }
+                """
+        expect = "Type mismatch in expression: BinExpr(==, Id(i), IntegerLit(1))"
+        self.assertTrue(TestChecker.test(input, expect, 499))
+
+    def test_normal2(self):
+        input = """b : array [1, 3] of integer = { {1, 2, 3} };
+        main: function void (){
+            a : integer = b[1,2] + 2 + 3;
+            if (b == 1) return;
+            else return;
+        }
+        """
+        expect = "Type mismatch in expression: BinExpr(==, Id(b), IntegerLit(1))"
+        self.assertTrue(TestChecker.test(input, expect, 500))

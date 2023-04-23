@@ -1,5 +1,12 @@
-b : array [1, 2] of integer = {{1, 1}};
-        main: function void (){
-            b : integer = b[1+1, 1] + 2 + 3;
-        }
-        
+
+            a: integer;
+            foo : function auto(){
+            while(a<10){
+                a = a + 1;
+                break;
+                return a;
+            }
+                a = a + 1;
+            return "hello";   
+            }
+                

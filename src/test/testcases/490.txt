@@ -1,5 +1,12 @@
-b : array [1, 2] of integer = {{1, 1}};
-        main: function void (){
-            b : integer = b[1+1, 1];
-        }
+
+        x: boolean;
+        foo: function integer(a: integer, b: float){
         
+        }
+        main: function float(out i: auto){
+            i = foo(1,2);
+            return 2;
+            return 2.0;
+            return "hello";
+        }
+                

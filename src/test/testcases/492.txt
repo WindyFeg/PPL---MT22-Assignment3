@@ -1,5 +1,9 @@
-b : array [1, 2] of integer = {{1, 1}};
-        main: function void (){
-            b : integer = b[true] + 2 + 3;
-        }
+ 
+        b: function void(a: integer, b: float, a: auto){
         
+        }
+        a: function auto(out i: auto){
+        break;
+        for(i = 7, i + 4, i + 0){}
+        }
+                

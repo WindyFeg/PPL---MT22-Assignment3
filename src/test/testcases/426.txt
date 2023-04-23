@@ -1,5 +1,10 @@
 
         a: string;
         b: auto = a;
-        b = "aloha";
+        doo: function auto(a: auto, d: auto){
+            c: integer;
+            a = c;
+            c = d;
+            a = doo(2.5,true);
+        }
         

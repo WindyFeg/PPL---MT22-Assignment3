@@ -1,11 +1,4 @@
-b : array [1, 2] of integer = {{1, 1}};
-        foo: function void(){
-            a : integer;
-        }
-        foo1: function void(){
-            a = 1;
-        }
-        main: function void (){
-            b : integer = b[1,2,3] + 2 + 3;
-        }
-        
+x, y, z: integer = 1,2,3;
+                   a: boolean = 2 == 1;
+                   b: auto = a;
+                   c: integer = b;

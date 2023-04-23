@@ -1,2 +1,3 @@
-x: boolean = ! true;
-        main: function void (){}
+
+        a: array [1,2] of boolean = {true, 1};
+        
